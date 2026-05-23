@@ -94,7 +94,41 @@
     background: var(--green-bg); color: var(--green-text);
     border-radius: 99px; font-weight: 500;
   }
+  .badge-meaty {
+    font-size: 10px; padding: 1px 7px;
+    background: #FDEBD0; color: #784212;
+    border-radius: 99px; font-weight: 500;
+  }
+  .badge-beyond {
+    font-size: 10px; padding: 1px 7px;
+    background: #D6EAF8; color: #1A5276;
+    border-radius: 99px; font-weight: 500;
+  }
   .item-note { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* INLINE CHOICE (checkbox-style) */
+  .item-choices {
+    display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;
+  }
+  .choice-btn {
+    font-size: 11px; padding: 3px 10px;
+    border: 1px solid var(--border2);
+    border-radius: 99px;
+    background: white; color: var(--text2);
+    cursor: pointer; font-family: inherit;
+    transition: all 0.15s;
+  }
+  .choice-btn.selected {
+    background: var(--gold-light);
+    border-color: var(--gold);
+    color: var(--gold-dark);
+    font-weight: 600;
+  }
+  .choice-required {
+    font-size: 10px; color: var(--red-text); margin-top: 3px; display: none;
+  }
+  .item.choice-error .choice-required { display: block; }
+  .item.choice-error .item-choices .choice-btn { border-color: var(--red-border); }
   .item-error { font-size: 11px; color: var(--red-text); margin-top: 3px; display: none; }
 
   /* QTY CONTROL */
@@ -295,6 +329,15 @@ const PHONE = "972549103442";
 
 const menu = [
   {
+    id: "weekly",
+    title: "⭐ מארז שבועי",
+    minGrams: 0,
+    minLabel: "מארז קבוע שבועי במחיר מיוחד",
+    items: [
+      { id: "w1", name: "מארז שבועי – ביס של בית", price: 180, fixed: true, vegan: false, note: "מארז שבועי מגוון בבחירת הבית | 180 ₪ ליחידה" }
+    ]
+  },
+  {
     id: "main",
     title: "🍗 מנות עיקריות",
     minGrams: 800,
@@ -304,16 +347,20 @@ const menu = [
       { id: "m2",  name: "מסחאן עוף מפורק עם שקדים קלויים (ללא אורז)", price: 11 },
       { id: "m3",  name: "עוף בתנור עם תפוחי אדמה ובטטה", price: 7.5 },
       { id: "m4",  name: "עוף ברוטב פרסי", price: 8 },
-      { id: "m5",  name: "קוסקוס עם עוף וירקות", price: 8 },
+      { id: "m5a", name: "קוסקוס עם עוף וירקות", price: 8 },
+      { id: "m5b", name: "קוסקוס ירקות (ללא עוף)", price: 7.5, veg: true, vegan: true },
       { id: "m6",  name: "כנפיים ברוטב מתקתק-פיקנטי", price: 6 },
-      { id: "m7",  name: "קציצות עוף ברוטב פרסי", price: 8.5 },
-      { id: "m8",  name: "בורקס בשר עם צנוברים", price: 9, note: "סטייה של עד 100 גרם" },
-      { id: "m9",  name: "פסטה בולונז", price: 6.5 },
-      { id: "m10", name: "פאי רועים", price: 8.5, note: "סטייה של עד 100 גרם" },
+      { id: "m7",  name: "קציצות עוף", price: 8.5, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי" },
+      { id: "m7v", name: "קציצות טופו", price: 8.5, veg: true, vegan: true, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי" },
+      { id: "m7x", name: "קציצות ביונד מיט", price: 9.5, veg: true, vegan: true, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי" },
+      { id: "m8",  name: "בורקס בשר עם צנוברים", price: 9, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+10 ₪) = טבעוני", checkbox: "beyond_choice" },
+      { id: "m9",  name: "פסטה בולונז", price: 6.5, veganOption: "beyond", note: "ניתן עם ביונד (+10 ₪) = טבעוני", checkbox: "beyond_choice" },
+      { id: "m10", name: "פאי רועים", price: 8.5, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+10 ₪) = טבעוני", checkbox: "beyond_choice" },
       { id: "m11", name: "דג מרוקאי", price: 8.5 },
-      { id: "m12", name: "קציצות דג ברוטב מרוקאי/פרסי", price: 9 },
+      { id: "m12", name: "קציצות דג", price: 9, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי" },
       { id: "m13", name: "דג סלמון בחמאת עגבניות ויין לבן", price: 15 },
-      { id: "m14", name: "פסטל יווני במילוי חצילים וגבינות", price: 8, veg: true }
+      { id: "m14", name: "פסטל יווני במילוי חצילים וגבינות", price: 8, veg: true },
+      { id: "m15", name: "מוקפץ תאילנדי", price: 7, checkbox: "thai_protein", note: "לבחור: עוף / טופו (טבעוני)" }
     ]
   },
   {
@@ -322,29 +369,45 @@ const menu = [
     minGrams: 500,
     minLabel: "מינימום הזמנה לכל תוספת: 500 גרם | מחיר ל-100 גרם",
     items: [
-      { id: "s1", name: "אורז לבן", price: 3, veg: true },
-      { id: "s2", name: "אורז עם אטריות", price: 3, veg: true },
-      { id: "s3", name: "תפוחי אדמה בתנור", price: 3, veg: true },
-      { id: "s4", name: "מיקס תפוח אדמה ובטטה", price: 4, veg: true },
-      { id: "s5", name: "פירה (חלבי/פרווה)", price: 5, veg: true },
-      { id: "s6", name: "מג'דרה", price: 4, veg: true },
-      { id: "s7", name: "בורגול עם בצל", price: 4, veg: true },
-      { id: "s8", name: "חלת שישי", price: 20, unit: "יח'", fixed: true, note: "15 ₪ ליחידה בהזמנה של 3+" }
+      { id: "s1", name: "אורז לבן", price: 3, veg: true, vegan: true },
+      { id: "s2", name: "אורז עם אטריות", price: 3, veg: true, vegan: true },
+      { id: "s3", name: "תפוחי אדמה בתנור", price: 3, veg: true, vegan: true },
+      { id: "s4", name: "מיקס תפוח אדמה ובטטה", price: 4, veg: true, vegan: true },
+      { id: "s5", name: "פירה (חלבי/פרווה)", price: 5, veg: true, vegNote: "חלבי = צמחוני | פרווה = טבעוני" },
+      { id: "s6", name: "מג'דרה", price: 4, veg: true, vegan: true },
+      { id: "s7", name: "בורגול עם בצל", price: 4, veg: true, vegan: true },
+      { id: "s8", name: "חלת שישי", price: 20, unit: "יח'", fixed: true, veg: true, note: "15 ₪ ליחידה בהזמנה של 3+" },
+      { id: "s9", name: "פרנה ביתית", price: 18, unit: "יח'", fixed: true, vegan: true, minUnits: 4, note: "4 פרנות ב-18 ₪ ליחידה | כל פרנה נוספת מעל 4 – תוספת 4 ₪" }
     ]
   },
   {
     id: "salads",
     title: "🥗 סלטים וממרחים",
     minGrams: 250,
-    minLabel: "מינימום הזמנה לכל סלט: 250 גרם | מחיר ל-100 גרם",
+    step: 50,
+    minLabel: "מינימום הזמנה לכל סלט: 250 גרם | מחיר ל-100 גרם | קפיצות 50 גרם",
     items: [
-      { id: "sa1", name: "חצילים על אש גלויה בטחינה/מיונז", price: 8, veg: true },
+      { id: "sa1", name: "חצילים על אש גלויה בטחינה/מיונז", price: 8, veg: true, vegan: true, vegNote: "בטחינה = טבעוני | במיונז = צמחוני" },
       { id: "sa2", name: "סלט ביצים", price: 6, veg: true },
-      { id: "sa3", name: "מטבוחה", price: 8.5, veg: true },
-      { id: "sa4", name: "חמוצים", price: 5, veg: true },
-      { id: "sa5", name: "סלט כרוב לבן", price: 3, veg: true },
-      { id: "sa6", name: "סלט כרוב סגול במיונז", price: 5, veg: true },
+      { id: "sa3", name: "מטבוחה", price: 8.5, veg: true, vegan: true },
+      { id: "sa4", name: "חמוצים", price: 5, veg: true, vegan: true },
+      { id: "sa5", name: "סלט כרוב לבן", price: 3, veg: true, vegan: true },
+      { id: "sa6", name: "סלט כרוב סגול במיונז", price: 5, veg: true, vegan: true },
       { id: "sa7", name: "ממרח פטה כבד", price: 7, minGrams: 500, note: "מינימום 500 גרם" }
+    ]
+  },
+  {
+    id: "condiments",
+    title: "🫙 מטבלים בצנצנת",
+    minGrams: 0,
+    minLabel: "22 ₪ לצנצנת (כ-150 גרם) | 4 צנצנות ומעלה – 20 ₪ ליחידה",
+    items: [
+      { id: "c1", name: "ריבת פלפל חריף",                      price: 22, fixed: true, veg: true, vegan: true },
+      { id: "c2", name: "ארטישוק קונפי עם פרמז'ן",              price: 22, fixed: true, veg: true },
+      { id: "c3", name: "חמאת שום, עשבי תיבול ופרמז'ן",        price: 22, fixed: true, veg: true },
+      { id: "c4", name: "לימון כבוש",                           price: 22, fixed: true, veg: true, vegan: true },
+      { id: "c5", name: "כדורי לאבנה",                          price: 22, fixed: true, veg: true },
+      { id: "c6", name: "סקורדליה – מטבל יווני",               price: 22, fixed: true, veg: true, vegan: true }
     ]
   }
 ];
@@ -358,6 +421,7 @@ menu.forEach(sec => {
 });
 
 const quantities = {};
+const choices = {}; // { itemId: "persian" | "moroccan" | "beyond" | "regular" }
 let deliveryMode = "pickup";
 
 // ── RENDER ──────────────────────────────────────────────────────────────────
@@ -391,31 +455,77 @@ function renderAll() {
 function buildItemEl(item, section) {
   const qty = quantities[item.id] || 0;
   const isFixed = !!item.fixed;
-  const step = isFixed ? 1 : 100;
+  const step = isFixed ? 1 : (section.step || 100);
   const unit = isFixed ? "יח'" : "גרם";
   const minQ = isFixed ? 1 : (item.minGrams || section.minGrams);
   const hasQty = qty > 0;
-  const isError = hasQty && qty < minQ;
+  const parnaMinFail = item.id === "s9" && qty > 0 && qty < 4;
+  const isError = (hasQty && !item.fixed && qty < minQ) || parnaMinFail;
+  const choiceNeeded = hasQty && item.checkbox && !choices[item.id];
 
   const div = document.createElement("div");
-  div.className = "item" + (hasQty ? " has-qty" : "") + (isError ? " error-state" : "");
+  div.className = "item" + (hasQty ? " has-qty" : "") + (isError ? " error-state" : "") + (choiceNeeded ? " choice-error" : "");
   div.id = "item-" + item.id;
 
   const priceLabel = isFixed
-    ? item.price + " ₪ ליחידה"
+    ? (item.id === "s9" ? "18 ₪ ליחידה (מינימום 4 | מ-5+ תוספת 4 ₪)" : item.price + " ₪ ליחידה")
     : item.price + " ₪ ל-100 גרם";
-
   const minLabel = isFixed ? "" : `מינימום ${minQ} גרם`;
-  const errorMsg = isFixed ? "" : `⚠️ מינימום הזמנה: ${minQ} גרם`;
+  const parnaError = item.id === "s9" && qty > 0 && qty < 4;
+  const errorMsg = parnaError ? "⚠️ מינימום הזמנה: 4 פרנות" : (isFixed ? "" : `⚠️ מינימום הזמנה: ${minQ} גרם`);
+
+  // Badges
+  let badges = "";
+  if (item.vegan) {
+    badges += ' <span class="badge-veg">🌿 טבעוני</span>';
+  } else if (item.veg) {
+    badges += ' <span class="badge-veg">🌱 צמחוני</span>';
+  }
+  if (item.veganOption === "beyond") {
+    badges += ' <span class="badge-beyond">⚡ ביונד +10₪</span>';
+  }
+
+  // Inline sauce / beyond choice buttons (shown when qty > 0)
+  let choiceHTML = "";
+  if (hasQty && item.checkbox === "sauce_persian_moroccan") {
+    const cur = choices[item.id];
+    choiceHTML = `
+      <div class="item-choices">
+        <button class="choice-btn${cur === 'persian' ? ' selected' : ''}" onclick="setChoice('${item.id}','persian')">🫙 פרסי</button>
+        <button class="choice-btn${cur === 'moroccan' ? ' selected' : ''}" onclick="setChoice('${item.id}','moroccan')">🌶️ מרוקאי</button>
+      </div>
+      <div class="choice-required">⚠️ יש לבחור רוטב</div>`;
+  } else if (hasQty && item.checkbox === "beyond_choice") {
+    const cur = choices[item.id];
+    choiceHTML = `
+      <div class="item-choices">
+        <button class="choice-btn${cur === 'regular' ? ' selected' : ''}" onclick="setChoice('${item.id}','regular')">🥩 בשר רגיל</button>
+        <button class="choice-btn${cur === 'beyond' ? ' selected' : ''}" onclick="setChoice('${item.id}','beyond')">🌿 ביונד +10₪</button>
+      </div>
+      <div class="choice-required">⚠️ יש לבחור סוג בשר</div>`;
+  } else if (hasQty && item.checkbox === "thai_protein") {
+    const cur = choices[item.id];
+    choiceHTML = `
+      <div class="item-choices">
+        <button class="choice-btn${cur === 'chicken' ? ' selected' : ''}" onclick="setChoice('${item.id}','chicken')">🍗 עוף</button>
+        <button class="choice-btn${cur === 'tofu' ? ' selected' : ''}" onclick="setChoice('${item.id}','tofu')">🌿 טופו (טבעוני)</button>
+      </div>
+      <div class="choice-required">⚠️ יש לבחור עוף או טופו</div>`;
+  }
+
+  // vegNote display
+  const vegNoteHTML = item.vegNote ? `<div class="item-note" style="color:var(--green-text);">ℹ️ ${item.vegNote}</div>` : "";
 
   div.innerHTML = `
     <div class="item-info">
-      <div class="item-name">${item.name}${item.veg ? ' <span class="badge-veg">צמחוני</span>' : ''}</div>
+      <div class="item-name">${item.name}${badges}</div>
       <div class="item-meta">
         <span class="item-price">${priceLabel}</span>
         ${!isFixed ? `<span class="item-price">| ${minLabel}</span>` : ""}
       </div>
       ${item.note ? `<div class="item-note">* ${item.note}</div>` : ""}
+      ${vegNoteHTML}
+      ${choiceHTML}
       <div class="item-error">${errorMsg}</div>
     </div>
     <div class="qty-wrap">
@@ -436,17 +546,19 @@ function buildItemEl(item, section) {
 // ── QTY LOGIC ────────────────────────────────────────────────────────────────
 
 function changeQty(id, delta, step, minQ) {
+  const item = itemMap[id];
   let cur = quantities[id] || 0;
   let next;
   if (delta > 0) {
-    // Going up: if currently 0, jump to minimum
-    next = cur === 0 ? minQ : cur + step;
+    const jumpMin = item && item.id === "s9" ? 4 : minQ;
+    next = cur === 0 ? jumpMin : cur + step;
   } else {
-    // Going down: if at or below min, go to 0
-    next = cur <= minQ ? 0 : cur + delta;
+    const dropMin = item && item.id === "s9" ? 4 : minQ;
+    next = cur <= dropMin ? 0 : cur + delta;
   }
   next = Math.max(0, next);
   quantities[id] = next;
+  if (next === 0) delete choices[id];
   refreshItem(id);
   updateSummary();
 }
@@ -454,6 +566,13 @@ function changeQty(id, delta, step, minQ) {
 function manualQty(id, raw, step, minQ) {
   const val = parseInt(raw) || 0;
   quantities[id] = Math.max(0, val);
+  if (!quantities[id]) delete choices[id];
+  refreshItem(id);
+  updateSummary();
+}
+
+function setChoice(id, value) {
+  choices[id] = value;
   refreshItem(id);
   updateSummary();
 }
@@ -481,10 +600,28 @@ function calcItemCost(item) {
   const qty = quantities[item.id] || 0;
   if (!qty) return 0;
   if (item.fixed) {
-    const price = (item.id === "s8" && (quantities["s8"] || 0) >= 3) ? 15 : item.price;
-    return price * qty;
+    // Chalah bulk discount
+    if (item.id === "s8") {
+      const price = (quantities["s8"] || 0) >= 3 ? 15 : item.price;
+      return price * qty;
+    }
+    // Parna: 18₪ each for first 4, +4₪ each beyond 4
+    if (item.id === "s9") {
+      const base = Math.min(qty, 4) * 18;
+      const extra = Math.max(0, qty - 4) * (18 + 4);
+      return base + extra;
+    }
+    // Condiment bulk discount: 4+ jars total = 20₪ each
+    if (item.id.startsWith("c")) {
+      const totalJars = ["c1","c2","c3","c4","c5","c6"].reduce((s,id) => s + (quantities[id] || 0), 0);
+      const price = totalJars >= 4 ? 20 : 22;
+      return price * qty;
+    }
+    return item.price * qty;
   }
-  return (item.price * qty) / 100;
+  let price = item.price;
+  if (item.checkbox === "beyond_choice" && choices[item.id] === "beyond") price += 10;
+  return (price * qty) / 100;
 }
 
 function calcTotal() {
@@ -499,15 +636,16 @@ function getMinForItem(item, section) {
   return item.minGrams || section.minGrams;
 }
 
-function hasErrors() {
-  return menu.some(sec =>
-    sec.items.some(item => {
-      const qty = quantities[item.id] || 0;
-      if (!qty || item.fixed) return false;
-      const min = getMinForItem(item, sec);
-      return qty < min;
-    })
-  );
+function getChoiceLabel(id) {
+  const c = choices[id];
+  if (!c) return "";
+  if (c === "persian") return " – ברוטב פרסי";
+  if (c === "moroccan") return " – ברוטב מרוקאי";
+  if (c === "beyond") return " – ביונד מיט";
+  if (c === "chicken") return " – עם עוף";
+  if (c === "tofu") return " – עם טופו (טבעוני)";
+  if (c === "regular") return " – בשר רגיל";
+  return "";
 }
 
 function updateSummary() {
@@ -525,8 +663,13 @@ function updateSummary() {
       const cost = calcItemCost(item).toFixed(1);
       const min = getMinForItem(item, sec);
       const isError = !item.fixed && qty < min;
+      const choiceLabel = getChoiceLabel(item.id);
+      // Show discounted per-unit price for condiments
+      const totalJars = ["c1","c2","c3","c4","c5","c6"].reduce((s,id) => s + (quantities[id] || 0), 0);
+      const jarNote = item.id.startsWith("c") && totalJars >= 4 ? " (20₪)" : "";
+      const parnaNote = item.id === "s9" && qty > 4 ? ` (4×18₪ + ${qty-4}×22₪)` : "";
       return `<div class="order-line" style="${isError ? 'color:var(--red-text)' : ''}">
-        <span>${isError ? '⚠️ ' : ''}${item.name} (${qty} ${unit})</span>
+        <span>${isError ? '⚠️ ' : ''}${item.name}${choiceLabel}${jarNote}${parnaNote||""} (${qty} ${unit})</span>
         <span>${cost} ₪</span>
       </div>`;
     }).join("");
@@ -569,20 +712,26 @@ function sendOrder() {
   menu.forEach(sec => {
     sec.items.forEach(item => {
       const qty = quantities[item.id] || 0;
+      if (item.id === 's9') { if (qty > 0 && qty < 4) errorItems.push({ name: item.name, qty, min: 4 }); return; }
       if (!qty || item.fixed) return;
       const min = getMinForItem(item, sec);
-      if (qty < min) {
-        errorItems.push({ name: item.name, qty, min });
-      }
+      if (qty < min) errorItems.push({ name: item.name, qty, min });
     });
   });
 
   if (errorItems.length > 0) {
-    const names = errorItems.map(e => `${e.name} (${e.qty} גרם, מינימום ${e.min} גרם)`).join("\n");
     showToast("⚠️ יש מנות מתחת למינימום — בדוק את ההזמנה");
-    // scroll to first error
     const firstErr = document.querySelector(".item.error-state");
     if (firstErr) firstErr.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  // Check missing choices
+  const missingChoice = selected.find(i => i.checkbox && !choices[i.id]);
+  if (missingChoice) {
+    showToast(`⚠️ יש לבחור אפשרות עבור: ${missingChoice.name}`);
+    const el = document.getElementById("item-" + missingChoice.id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
 
@@ -600,7 +749,10 @@ function sendOrder() {
       const qty = quantities[item.id];
       const unit = item.fixed ? "יח'" : "גרם";
       const cost = calcItemCost(item).toFixed(1);
-      msg += `• ${item.name} – ${qty} ${unit} = ${cost} ₪\n`;
+      const choiceLabel = getChoiceLabel(item.id);
+      const totalJars = ["c1","c2","c3","c4","c5","c6"].reduce((s,id) => s + (quantities[id] || 0), 0);
+      const jarNote = item.id.startsWith("c") && totalJars >= 4 ? " [מחיר מבצע 20₪]" : "";
+      msg += `• ${item.name}${choiceLabel}${jarNote} – ${qty} ${unit} = ${cost} ₪\n`;
     });
   });
 
@@ -615,6 +767,7 @@ function sendOrder() {
 // ── INIT ──────────────────────────────────────────────────────────────────────
 renderAll();
 updateSummary();
+
 </script>
 </body>
 </html>
