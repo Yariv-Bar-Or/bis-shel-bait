@@ -31,7 +31,7 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    padding-bottom: 340px;
+    padding-bottom: 70px;
   }
 
   /* HEADER */
@@ -177,34 +177,69 @@
     bottom: 0; left: 0; right: 0;
     background: white;
     border-top: 1.5px solid var(--gold);
-    padding: 12px 16px 16px;
     z-index: 200;
     box-shadow: 0 -4px 24px rgba(44,36,22,0.12);
+    transition: all 0.3s ease;
+  }
+  /* Collapsed strip — always visible */
+  .summary-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    gap: 10px;
+  }
+  .strip-total {
+    font-size: 16px; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .strip-count {
+    font-size: 12px; color: var(--text3);
+  }
+  .strip-toggle {
+    font-size: 13px; color: var(--gold-dark); font-weight: 600;
+    background: var(--gold-light); border: 1px solid var(--gold);
+    border-radius: 20px; padding: 3px 12px; white-space: nowrap;
+    flex-shrink: 0;
+  }
+  /* Expandable panel */
+  .summary-panel {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.35s ease;
+    padding: 0 16px;
+  }
+  .summary-panel.open {
+    max-height: 600px;
+    padding-bottom: 16px;
   }
   .order-lines {
-    max-height: 90px;
+    max-height: 140px;
     overflow-y: auto;
     margin-bottom: 8px;
     padding-right: 2px;
+    border-bottom: 0.5px solid var(--border);
+    padding-bottom: 6px;
   }
   .order-line {
     display: flex;
     justify-content: space-between;
     font-size: 12px;
     color: var(--text2);
-    padding: 2px 0;
+    padding: 3px 0;
     border-bottom: 0.5px solid var(--border);
   }
   .order-line:last-child { border-bottom: none; }
   .summary-total {
     display: flex;
     justify-content: space-between;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--text);
     margin-bottom: 10px;
     padding-top: 6px;
-    border-top: 0.5px solid var(--border2);
   }
   .delivery-row {
     display: flex; gap: 8px; margin-bottom: 10px;
@@ -303,13 +338,23 @@
 
 <div class="toast" id="toast"></div>
 
-<div class="summary-bar">
-  <div class="order-lines" id="order-lines"></div>
-  <div class="summary-total">
-    <span>סה"כ משוער</span>
-    <span id="total-display">0 ₪</span>
+<div class="summary-bar" id="summary-bar">
+  <!-- Collapsed strip always visible -->
+  <div class="summary-strip" onclick="toggleSummary()">
+    <div class="strip-total">
+      🛒 <span id="total-display">0 ₪</span>
+      <span class="strip-count" id="strip-count"></span>
+    </div>
+    <div class="strip-toggle" id="strip-toggle">פירוט ▲</div>
   </div>
-  <div class="delivery-row">
+  <!-- Expandable panel -->
+  <div class="summary-panel" id="summary-panel">
+    <div class="order-lines" id="order-lines"></div>
+    <div class="summary-total">
+      <span>סה"כ משוער</span>
+      <span id="total-display2">0 ₪</span>
+    </div>
+    <div class="delivery-row">
     <button class="del-btn active" id="pickup-btn" onclick="setDelivery('pickup')">🚶 איסוף עצמי</button>
     <button class="del-btn" id="delivery-btn" onclick="setDelivery('delivery')">🛵 משלוח (+20 ₪)</button>
   </div>
@@ -322,7 +367,8 @@
     </svg>
     שלח הזמנה בוואטסאפ
   </button>
-</div>
+  </div><!-- end summary-panel -->
+</div><!-- end summary-bar -->
 
 <script>
 const PHONE = "972549103442";
@@ -376,8 +422,7 @@ const menu = [
       { id: "s5", name: "פירה (חלבי/פרווה)", price: 5, veg: true, vegNote: "חלבי = צמחוני | פרווה = טבעוני" },
       { id: "s6", name: "מג'דרה", price: 4, veg: true, vegan: true },
       { id: "s7", name: "בורגול עם בצל", price: 4, veg: true, vegan: true },
-      { id: "s8", name: "חלת שישי", price: 20, unit: "יח'", fixed: true, veg: true, note: "15 ₪ ליחידה בהזמנה של 3+" },
-      { id: "s9", name: "פרנה ביתית", price: 18, unit: "יח'", fixed: true, vegan: true, minUnits: 4, note: "4 פרנות ב-18 ₪ ליחידה | כל פרנה נוספת מעל 4 – תוספת 4 ₪" }
+      { id: "s8", name: "חלת שישי", price: 20, unit: "יח'", fixed: true, veg: true, note: "15 ₪ ליחידה בהזמנה של 3+" }
     ]
   },
   {
@@ -459,20 +504,16 @@ function buildItemEl(item, section) {
   const unit = isFixed ? "יח'" : "גרם";
   const minQ = isFixed ? 1 : (item.minGrams || section.minGrams);
   const hasQty = qty > 0;
-  const parnaMinFail = item.id === "s9" && qty > 0 && qty < 4;
-  const isError = (hasQty && !item.fixed && qty < minQ) || parnaMinFail;
+  const isError = hasQty && qty < minQ;
   const choiceNeeded = hasQty && item.checkbox && !choices[item.id];
 
   const div = document.createElement("div");
   div.className = "item" + (hasQty ? " has-qty" : "") + (isError ? " error-state" : "") + (choiceNeeded ? " choice-error" : "");
   div.id = "item-" + item.id;
 
-  const priceLabel = isFixed
-    ? (item.id === "s9" ? "18 ₪ ליחידה (מינימום 4 | מ-5+ תוספת 4 ₪)" : item.price + " ₪ ליחידה")
-    : item.price + " ₪ ל-100 גרם";
+  const priceLabel = isFixed ? item.price + " ₪ ליחידה" : item.price + " ₪ ל-100 גרם";
   const minLabel = isFixed ? "" : `מינימום ${minQ} גרם`;
-  const parnaError = item.id === "s9" && qty > 0 && qty < 4;
-  const errorMsg = parnaError ? "⚠️ מינימום הזמנה: 4 פרנות" : (isFixed ? "" : `⚠️ מינימום הזמנה: ${minQ} גרם`);
+  const errorMsg = isFixed ? "" : `⚠️ מינימום הזמנה: ${minQ} גרם`;
 
   // Badges
   let badges = "";
@@ -530,12 +571,22 @@ function buildItemEl(item, section) {
     </div>
     <div class="qty-wrap">
       <div class="qty-control">
-        <button class="qty-btn" onclick="changeQty('${item.id}', -${step}, ${step}, ${minQ})">−</button>
+        <button class="qty-btn"
+          onclick="changeQty('${item.id}', -${step}, ${step}, ${minQ})"
+          onmousedown="startLongPress('${item.id}', -${step}, ${step}, ${minQ})"
+          ontouchstart="startLongPress('${item.id}', -${step}, ${step}, ${minQ})"
+          onmouseup="stopLongPress()" onmouseleave="stopLongPress()"
+          ontouchend="stopLongPress()" ontouchcancel="stopLongPress()">−</button>
         <input class="qty-input" type="number" value="${qty}" min="0" step="${step}"
           id="inp-${item.id}"
           onchange="manualQty('${item.id}', this.value, ${step}, ${minQ})"
           oninput="manualQty('${item.id}', this.value, ${step}, ${minQ})">
-        <button class="qty-btn" onclick="changeQty('${item.id}', ${step}, ${step}, ${minQ})">+</button>
+        <button class="qty-btn"
+          onclick="changeQty('${item.id}', ${step}, ${step}, ${minQ})"
+          onmousedown="startLongPress('${item.id}', ${step}, ${step}, ${minQ})"
+          ontouchstart="startLongPress('${item.id}', ${step}, ${step}, ${minQ})"
+          onmouseup="stopLongPress()" onmouseleave="stopLongPress()"
+          ontouchend="stopLongPress()" ontouchcancel="stopLongPress()">+</button>
       </div>
       <div class="qty-unit">${unit}</div>
     </div>
@@ -546,15 +597,12 @@ function buildItemEl(item, section) {
 // ── QTY LOGIC ────────────────────────────────────────────────────────────────
 
 function changeQty(id, delta, step, minQ) {
-  const item = itemMap[id];
   let cur = quantities[id] || 0;
   let next;
   if (delta > 0) {
-    const jumpMin = item && item.id === "s9" ? 4 : minQ;
-    next = cur === 0 ? jumpMin : cur + step;
+    next = cur === 0 ? minQ : cur + step;
   } else {
-    const dropMin = item && item.id === "s9" ? 4 : minQ;
-    next = cur <= dropMin ? 0 : cur + delta;
+    next = cur <= minQ ? 0 : cur + delta;
   }
   next = Math.max(0, next);
   quantities[id] = next;
@@ -604,12 +652,6 @@ function calcItemCost(item) {
     if (item.id === "s8") {
       const price = (quantities["s8"] || 0) >= 3 ? 15 : item.price;
       return price * qty;
-    }
-    // Parna: 18₪ each for first 4, +4₪ each beyond 4
-    if (item.id === "s9") {
-      const base = Math.min(qty, 4) * 18;
-      const extra = Math.max(0, qty - 4) * (18 + 4);
-      return base + extra;
     }
     // Condiment bulk discount: 4+ jars total = 20₪ each
     if (item.id.startsWith("c")) {
@@ -667,15 +709,22 @@ function updateSummary() {
       // Show discounted per-unit price for condiments
       const totalJars = ["c1","c2","c3","c4","c5","c6"].reduce((s,id) => s + (quantities[id] || 0), 0);
       const jarNote = item.id.startsWith("c") && totalJars >= 4 ? " (20₪)" : "";
-      const parnaNote = item.id === "s9" && qty > 4 ? ` (4×18₪ + ${qty-4}×22₪)` : "";
       return `<div class="order-line" style="${isError ? 'color:var(--red-text)' : ''}">
-        <span>${isError ? '⚠️ ' : ''}${item.name}${choiceLabel}${jarNote}${parnaNote||""} (${qty} ${unit})</span>
+        <span>${isError ? '⚠️ ' : ''}${item.name}${choiceLabel}${jarNote} (${qty} ${unit})</span>
         <span>${cost} ₪</span>
       </div>`;
     }).join("");
   }
 
-  document.getElementById("total-display").textContent = calcTotal().toFixed(1) + " ₪";
+  const totalStr = calcTotal().toFixed(1) + " ₪";
+  document.getElementById("total-display").textContent = totalStr;
+  const td2 = document.getElementById("total-display2");
+  if (td2) td2.textContent = totalStr;
+  const countEl = document.getElementById("strip-count");
+  if (countEl) {
+    const n = menu.flatMap(s=>s.items).filter(i=>(quantities[i.id]||0)>0).length;
+    countEl.textContent = n > 0 ? `(${n} פריטים)` : "";
+  }
 }
 
 // ── VALIDATION & SEND ─────────────────────────────────────────────────────────
@@ -712,7 +761,6 @@ function sendOrder() {
   menu.forEach(sec => {
     sec.items.forEach(item => {
       const qty = quantities[item.id] || 0;
-      if (item.id === 's9') { if (qty > 0 && qty < 4) errorItems.push({ name: item.name, qty, min: 4 }); return; }
       if (!qty || item.fixed) return;
       const min = getMinForItem(item, sec);
       if (qty < min) errorItems.push({ name: item.name, qty, min });
@@ -762,6 +810,34 @@ function sendOrder() {
 
   const url = `https://wa.me/${PHONE}?text=${encodeURIComponent(msg)}`;
   window.open(url, "_blank");
+}
+
+// ── SUMMARY TOGGLE ───────────────────────────────────────────────────────────
+let summaryOpen = false;
+function toggleSummary() {
+  summaryOpen = !summaryOpen;
+  document.getElementById("summary-panel").classList.toggle("open", summaryOpen);
+  document.getElementById("strip-toggle").textContent = summaryOpen ? "סגור ▼" : "פירוט ▲";
+}
+
+
+// ── LONG PRESS ───────────────────────────────────────────────────────────────
+let longPressTimer = null;
+let longPressInterval = null;
+
+function startLongPress(id, delta, step, minQ) {
+  stopLongPress();
+  // After 500ms hold, start repeating every 120ms
+  longPressTimer = setTimeout(() => {
+    longPressInterval = setInterval(() => {
+      changeQty(id, delta, step, minQ);
+    }, 120);
+  }, 500);
+}
+
+function stopLongPress() {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  if (longPressInterval) { clearInterval(longPressInterval); longPressInterval = null; }
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
