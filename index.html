@@ -420,6 +420,28 @@
   .free-condiment-banner.visible { display: block; }
   .free-condiment-banner strong { color: var(--gold-dark); }
 
+  
+  /* WEEKLY DETAILS */
+  .weekly-details-btn {
+    margin-top: 8px;
+    font-size: 13px; font-family: inherit;
+    background: none; border: 1px solid var(--gold);
+    color: var(--gold-dark); border-radius: 99px;
+    padding: 4px 14px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .weekly-details-btn:hover { background: var(--gold-light); }
+  .weekly-details-content {
+    margin-top: 8px; padding: 10px 12px;
+    background: var(--bg2); border-radius: 10px;
+    font-size: 13px; color: var(--text2);
+    line-height: 1.9;
+    animation: fadeIn 0.2s ease;
+  }
+  .weekly-details-section { margin-bottom: 6px; }
+  .weekly-details-section strong { color: var(--text); display: block; margin-bottom: 2px; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
   </style>
 </head>
 <body>
@@ -521,7 +543,7 @@ const menu = [
     minGrams: 0,
     minLabel: "מארז קבוע שבועי במחיר מיוחד",
     items: [
-      { id: "w1", name: "מארז שבועי – ביס של בית", price: 180, fixed: true, vegan: false, note: "מארז שבועי מגוון בבחירת הבית | 180 ₪ ליחידה" }
+      { id: "w1", name: "מארז שבועי", price: 180, fixed: true, vegan: false, note: "מספיק ל4-7 ארוחות | 180 ₪ ליחידה", weeklyDetails: true, checkbox: "egg_style" }
     ]
   },
   {
@@ -548,7 +570,7 @@ const menu = [
       { id: "m13", name: "דג סלמון בחמאת עגבניות ויין לבן", price: 15 },
       { id: "m14", name: "פסטל יווני במילוי חצילים וגבינות", price: 8, veg: true },
       { id: "m15", name: "מוקפץ תאילנדי", price: 7, checkbox: "thai_protein", note: "לבחור: עוף / טופו (טבעוני)" },
-      { id: "m16", name: "פאד קפאו", price: 8 }
+      { id: "m16", name: "פאד קפאו", price: 8, checkbox: "egg_style", note: "לבחור: ביצת עין / ביצת עין הפוכה" }
     ]
   },
   {
@@ -719,6 +741,19 @@ function buildItemEl(item, section) {
   }
 
   // vegNote display
+  else if (hasQty && item.checkbox === "egg_style") {
+    const cur = choices[item.id];
+    const eggNote = item.id === "w1"
+      ? "* יש לבחור סגנון ביצה לפאד קפאו"
+      : "⚠️ יש לבחור סגנון ביצה";
+    choiceHTML = `
+      <div class="item-choices">
+        <button class="choice-btn${cur === 'sunny' ? ' selected' : ''}" onclick="setChoice('${item.id}','sunny')">ביצת עין</button>
+        <button class="choice-btn${cur === 'flipped' ? ' selected' : ''}" onclick="setChoice('${item.id}','flipped')">ביצת עין הפוכה</button>
+      </div>
+      <div class="choice-required" style="${cur ? 'display:none' : ''}">${eggNote}</div>`;
+  }
+
   const vegNoteHTML = item.vegNote ? `<div class="item-note" style="color:var(--green-text);">ℹ️ ${item.vegNote}</div>` : "";
 
   const imgSrc = itemImages[item.id] || null;
@@ -734,6 +769,26 @@ function buildItemEl(item, section) {
         ${!isFixed ? `<span class="item-price">| ${minLabel}</span>` : ""}
       </div>
       ${item.note ? `<div class="item-note">* ${item.note}</div>` : ""}
+      ${item.weeklyDetails ? `
+        <button class="weekly-details-btn" onclick="toggleWeeklyDetails(event)" aria-expanded="false">
+          📋 פירוט ▼
+        </button>
+        <div class="weekly-details-content" style="display:none;">
+          <div class="weekly-details-section"><strong>עיקריות:</strong>
+            <div>• קציצות דג ברוטב מרוקאי (פיקנטי)</div>
+            <div>• קוסקוס של סבתא</div>
+            <div>• עוף ברוטב פרסי</div>
+            <div>• פאד קפאו</div>
+          </div>
+          <div class="weekly-details-section"><strong>תוספות:</strong>
+            <div>• אורז</div>
+            <div>• מיקס ירקות בתנור</div>
+          </div>
+          <div class="weekly-details-section"><strong>סלט:</strong>
+            <div>• סלט כרוב סגול במיונז</div>
+          </div>
+        </div>
+      ` : ""}
       ${vegNoteHTML}
       ${choiceHTML}
       <div class="item-error">${errorMsg}</div>
@@ -871,6 +926,8 @@ function getChoiceLabel(id) {
   if (c === "chicken") return " – עם עוף";
   if (c === "tofu") return " – עם טופו (טבעוני)";
   if (c === "regular") return " – בשר רגיל";
+  if (c === "sunny") return " – ביצת עין";
+  if (c === "flipped") return " – ביצת עין הפוכה";
   return "";
 }
 
@@ -1103,6 +1160,24 @@ function setupScrollSpy() {
     });
   }, { rootMargin: '-5% 0px -85% 0px', threshold: 0 });
   sections.forEach(s => observer.observe(s));
+}
+
+function toggleWeeklyDetails(e) {
+  const btn = e.currentTarget;
+  const content = btn.nextElementSibling;
+  const isOpen = content.style.display !== "none";
+  content.style.display = isOpen ? "none" : "block";
+  btn.textContent = isOpen ? "📋 פירוט ▼" : "📋 פירוט ▲";
+  btn.setAttribute("aria-expanded", !isOpen);
+}
+
+function toggleWeeklyDetails(e) {
+  const btn = e.currentTarget;
+  const content = btn.nextElementSibling;
+  const isOpen = content.style.display !== "none";
+  content.style.display = isOpen ? "none" : "block";
+  btn.textContent = isOpen ? "📋 פירוט ▼" : "📋 פירוט ▲";
+  btn.setAttribute("aria-expanded", !isOpen);
 }
 
 // ── PROMO HELPERS ─────────────────────────────────────────────────────────────
