@@ -1011,12 +1011,25 @@ function stopLongPress() {
   if (longPressInterval) { clearInterval(longPressInterval); longPressInterval = null; }
 }
 
+let _scrollSpyPaused = false;
+
 function scrollToSection(id) {
   const el = document.getElementById("sec-" + id);
   if (!el) return;
   const topBar = document.querySelector('.top-bar');
   const offset = topBar ? topBar.offsetHeight : 0;
   const y = el.getBoundingClientRect().top + window.scrollY - offset;
+
+  // Immediately highlight the clicked tab
+  document.querySelectorAll('.cat-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.sectionId === id);
+  });
+
+  // Pause scroll spy briefly so it doesn't override our click
+  _scrollSpyPaused = true;
+  clearTimeout(window._scrollSpyTimer);
+  window._scrollSpyTimer = setTimeout(() => { _scrollSpyPaused = false; }, 800);
+
   window.scrollTo({ top: y, behavior: 'smooth' });
 }
 
@@ -1027,7 +1040,7 @@ function setupScrollSpy() {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const secId = entry.target.id.replace('sec-', '');
-        tabs.forEach(t => t.classList.toggle('active', t.dataset.sectionId === secId));
+        if (!_scrollSpyPaused) tabs.forEach(t => t.classList.toggle('active', t.dataset.sectionId === secId));
       }
     });
   }, { rootMargin: '-5% 0px -85% 0px', threshold: 0 });
