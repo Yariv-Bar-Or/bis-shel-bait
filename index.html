@@ -543,7 +543,7 @@ const menu = [
     minGrams: 0,
     minLabel: "מארז קבוע שבועי במחיר מיוחד",
     items: [
-      { id: "w1", name: "מארז שבועי", price: 180, fixed: true, vegan: false, note: "מספיק ל4-7 ארוחות | 180 ₪ ליחידה", weeklyDetails: true, checkbox: "egg_style" }
+      { id: "w1", name: "מארז שבועי", price: 180, fixed: true, vegan: false, outOfStock: true, oosLabel: "לא זמין השבוע" }
     ]
   },
   {
@@ -570,7 +570,7 @@ const menu = [
       { id: "m13", name: "דג סלמון בחמאת עגבניות ויין לבן", price: 15 },
       { id: "m14", name: "פסטל יווני במילוי חצילים וגבינות", price: 8, veg: true },
       { id: "m15", name: "מוקפץ תאילנדי", price: 7, checkbox: "thai_protein", note: "לבחור: עוף / טופו (טבעוני)" },
-      { id: "m16", name: "פאד קפאו על מצע של אורז לבן", price: 8, checkbox: "egg_style", note: "לבחור: ביצת עין / ביצת עין הפוכה" }
+      { id: "m16", name: "פאד קפאו על מצע של אורז לבן", price: 8, veganOption: "beyond", checkbox: "pad_kapao", note: "לבחור: ביצת עין / ביצת עין הפוכה | ניתן עם ביונד (+10 ₪) = טבעוני" }
     ]
   },
   {
@@ -584,7 +584,7 @@ const menu = [
       { id: "s3", name: "תפוחי אדמה בתנור", price: 3, veg: true, vegan: true },
       { id: "s4", name: "מיקס תפוח אדמה ובטטה", price: 4, veg: true, vegan: true },
       { id: "s5", name: "פירה (חלבי/פרווה)", price: 5, veg: true, vegNote: "חלבי = צמחוני | פרווה = טבעוני" },
-      { id: "s6", name: "מג'דרה", price: 4, veg: true, vegan: true },
+      { id: "s6", name: "מג'דרה", price: 5, veg: true, vegan: true },
       { id: "s7", name: "בורגול עם בצל", price: 4, veg: true, vegan: true },
       { id: "s8", name: "חלת שישי", price: 20, unit: "יח'", fixed: true, veg: true, note: "15 ₪ ליחידה בהזמנה של 3+", minUnits: 2 }
     ]
@@ -613,7 +613,7 @@ const menu = [
     items: [
       { id: "c1", name: "ריבת פלפל חריף",                      price: 22, fixed: true, veg: true, vegan: true },
       { id: "c2", name: "ארטישוק קונפי עם פרמז'ן",              price: 22, fixed: true, veg: true },
-      { id: "c3", name: "חמאת שום, עשבי תיבול ופרמז'ן",        price: 22, fixed: true, veg: true },
+      { id: "c3", name: "חמאת שום, עשבי תיבול ופרמז'ן",        price: 22, fixed: true, veg: true, outOfStock: true },
       { id: "c4", name: "לימון כבוש",                           price: 22, fixed: true, veg: true, vegan: true },
       { id: "c5", name: "כדורי לאבנה",                          price: 22, fixed: true, veg: true, outOfStock: true },
       { id: "c6", name: "סקורדליה – מטבל יווני",               price: 22, fixed: true, veg: true, vegan: true }
@@ -701,7 +701,7 @@ function buildItemEl(item, section) {
   // Badges
   let badges = "";
   if (item.outOfStock) {
-    badges += ' <span class="badge-oos">אזל המלאי</span>';
+    badges += ` <span class="badge-oos">${item.oosLabel || "אזל המלאי"}</span>`;
   }
   if (item.vegan) {
     badges += ' <span class="badge-veg">🌿 טבעוני</span>';
@@ -752,6 +752,21 @@ function buildItemEl(item, section) {
         <button class="choice-btn${cur === 'flipped' ? ' selected' : ''}" onclick="setChoice('${item.id}','flipped')">ביצת עין הפוכה</button>
       </div>
       <div class="choice-required" style="${cur ? 'display:none' : ''}">${eggNote}</div>`;
+  }
+  else if (hasQty && item.checkbox === "pad_kapao") {
+    const curProtein = choices[item.id] || null;
+    const curEgg = choices[item.id + "_egg"] || null;
+    choiceHTML = `
+      <div class="item-choices" style="margin-bottom:4px;">
+        <button class="choice-btn${curProtein === 'chicken' ? ' selected' : ''}" onclick="setChoice('${item.id}','chicken')">🍗 עוף</button>
+        <button class="choice-btn${curProtein === 'beyond' ? ' selected' : ''}" onclick="setChoice('${item.id}','beyond')">🌿 ביונד +10₪</button>
+      </div>
+      <div class="choice-required" style="${curProtein ? 'display:none' : ''}">⚠️ יש לבחור סוג חלבון</div>
+      <div class="item-choices" style="margin-top:6px;">
+        <button class="choice-btn${curEgg === 'sunny' ? ' selected' : ''}" onclick="setChoice('${item.id}_egg','sunny')">ביצת עין</button>
+        <button class="choice-btn${curEgg === 'flipped' ? ' selected' : ''}" onclick="setChoice('${item.id}_egg','flipped')">ביצת עין הפוכה</button>
+      </div>
+      <div class="choice-required" style="${curEgg ? 'display:none' : ''}">⚠️ יש לבחור סגנון ביצה</div>`;
   }
 
   const vegNoteHTML = item.vegNote ? `<div class="item-note" style="color:var(--green-text);">ℹ️ ${item.vegNote}</div>` : "";
@@ -889,7 +904,7 @@ function calcItemCost(item) {
     return item.price * qty;
   }
   let price = item.price;
-  const beyondExtra = (item.checkbox === "beyond_choice" && choices[item.id] === "beyond") ? 10 : 0;
+  const beyondExtra = ((item.checkbox === "beyond_choice" || item.checkbox === "pad_kapao") && choices[item.id] === "beyond") ? 10 : 0;
   return (price * qty) / 100 + beyondExtra;
 }
 
@@ -931,6 +946,17 @@ function getChoiceLabel(id) {
   return "";
 }
 
+function getChoiceLabelPadKapao(id) {
+  const protein = choices[id] || "";
+  const egg = choices[id + "_egg"] || "";
+  let label = "";
+  if (protein === "chicken") label += " – עוף";
+  if (protein === "beyond") label += " – ביונד";
+  if (egg === "sunny") label += " + ביצת עין";
+  if (egg === "flipped") label += " + ביצת עין הפוכה";
+  return label;
+}
+
 function updateSummary() {
   const allItems = menu.flatMap(s => s.items);
   const selected = allItems.filter(i => (quantities[i.id] || 0) > 0);
@@ -946,7 +972,7 @@ function updateSummary() {
       const cost = calcItemCost(item).toFixed(1);
       const min = getMinForItem(item, sec);
       const isError = !item.fixed && qty < min;
-      const choiceLabel = getChoiceLabel(item.id);
+      const choiceLabel = item.checkbox === "pad_kapao" ? getChoiceLabelPadKapao(item.id) : getChoiceLabel(item.id);
       // Show discounted per-unit price for condiments
       const totalJars = ["c1","c2","c3","c4","c5","c6"].reduce((s,id) => s + (quantities[id] || 0), 0);
       const jarNote = item.id.startsWith("c") && totalJars >= 4 ? " (20₪)" : "";
@@ -1030,13 +1056,29 @@ function sendOrder() {
   }
 
   // Check missing choices
-  const missingChoice = selected.find(i => i.checkbox && !choices[i.id]);
+  const missingChoice = selected.find(i => {
+    if (!i.checkbox) return false;
+    if (i.checkbox === "pad_kapao") return !choices[i.id] || !choices[i.id + "_egg"];
+    return !choices[i.id];
+  });
   if (missingChoice) {
     showToast(`⚠️ יש לבחור אפשרות עבור: ${missingChoice.name}`);
     const el = document.getElementById("item-" + missingChoice.id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
+
+  // Under-200 reminder: tell them how much more to reach the free condiment promo
+  if (!_skipUnder200Check) {
+    const rawTotalCheck = calcRawTotal();
+    if (rawTotalCheck < 200) {
+      const remaining = (200 - rawTotalCheck).toFixed(1);
+      document.getElementById("under-200-amount").textContent = remaining + " ₪";
+      document.getElementById("under-200-modal").classList.add("open");
+      return;
+    }
+  }
+  _skipUnder200Check = false;
 
   // Free condiment reminder
   if (!_skipFreeCondimentCheck) {
@@ -1063,7 +1105,7 @@ function sendOrder() {
       const qty = quantities[item.id];
       const unit = item.fixed ? "יח'" : "גרם";
       const cost = calcItemCost(item).toFixed(1);
-      const choiceLabel = getChoiceLabel(item.id);
+      const choiceLabel = item.checkbox === "pad_kapao" ? getChoiceLabelPadKapao(item.id) : getChoiceLabel(item.id);
       const totalJars = ["c1","c2","c3","c4","c5","c6"].reduce((s,id) => s + (quantities[id] || 0), 0);
       const rawTotalForMsg = calcRawTotal();
       const promoFreeJar = rawTotalForMsg >= 200 && !checkHasFreeCondiment() ? false : (rawTotalForMsg >= 200 && item.id.startsWith("c") && totalJars === 1);
@@ -1195,6 +1237,20 @@ function checkHasFreeCondiment() {
   return condimentIds.some(id => (quantities[id] || 0) > 0);
 }
 
+function closeUnder200Modal(e) {
+  if (e.target === document.getElementById("under-200-modal")) {
+    document.getElementById("under-200-modal").classList.remove("open");
+  }
+}
+function closeUnder200ModalAddMore() {
+  document.getElementById("under-200-modal").classList.remove("open");
+}
+function sendOrderSkipUnder200() {
+  document.getElementById("under-200-modal").classList.remove("open");
+  _skipUnder200Check = true;
+  sendOrder();
+}
+
 function closePromoModal(e) {
   if (e.target === document.getElementById("promo-modal")) closePromoModalDirect();
 }
@@ -1230,6 +1286,7 @@ function sendOrderConfirmed() {
 }
 
 let _skipFreeCondimentCheck = false;
+let _skipUnder200Check = false;
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 renderAll();
@@ -1255,6 +1312,25 @@ window.addEventListener("DOMContentLoaded", function() {
     </div>
     <button class="modal-btn" onclick="closePromoModalDirect()" style="background:var(--gold);color:white;font-size:16px;font-weight:700;padding:14px;">
       המשך להזמנה
+    </button>
+  </div>
+</div>
+
+<!-- UNDER 200 REMINDER POPUP -->
+<div class="modal-overlay" id="under-200-modal" onclick="closeUnder200Modal(event)">
+  <div class="modal-box" dir="rtl" style="text-align:center;">
+    <div style="font-size:36px;margin-bottom:8px;">🫙</div>
+    <div class="modal-title">עוד קצת ומגיע לך מתנה!</div>
+    <div style="font-size:15px;color:var(--text2);margin-bottom:20px;line-height:1.6;">
+      נשארו לך עוד <strong style="color:var(--gold-dark);font-size:17px;" id="under-200-amount">0 ₪</strong><br>
+      להזמנה של <strong>200 ₪</strong> ותקבל/י<br>
+      <strong style="color:var(--gold-dark);">מטבל בצנצנת במתנה! 🎁</strong>
+    </div>
+    <button class="modal-btn" onclick="closeUnder200ModalAddMore()" style="background:var(--gold);color:white;font-size:16px;font-weight:700;padding:14px;margin-bottom:10px;">
+      רוצה להוסיף עוד 😊
+    </button>
+    <button class="modal-btn" onclick="sendOrderSkipUnder200()" style="background:var(--bg2);color:var(--text2);font-size:14px;padding:12px;">
+      לא תודה, שלח כך
     </button>
   </div>
 </div>
