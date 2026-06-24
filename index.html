@@ -669,7 +669,8 @@ function buildItemEl(item, section) {
   const minQ = isFixed ? (item.minUnits || 1) : (item.minGrams || section.minGrams);
   const hasQty = qty > 0;
   const isError = hasQty && qty < minQ;
-  const choiceNeeded = hasQty && item.checkbox && !choices[item.id];
+  const weeklyChoiceNeeded = hasQty && item.weeklyDetails && (!choices["w1_mash"] || !choices["w1_salad"]);
+  const choiceNeeded = (hasQty && item.checkbox && !choices[item.id]) || weeklyChoiceNeeded;
 
   const div = document.createElement("div");
   div.className = "item" + (hasQty ? " has-qty" : "") + (isError ? " error-state" : "") + (choiceNeeded ? " choice-error" : "") + (item.outOfStock ? " out-of-stock" : "");
@@ -771,7 +772,7 @@ function buildItemEl(item, section) {
     const curEgg = choices[item.id + "_egg"] || null;
     choiceHTML = `
       <div class="item-choices" style="margin-bottom:4px;">
-        <button class="choice-btn${curProtein === 'chicken' ? ' selected' : ''}" onclick="setChoice('${item.id}','chicken')">🍗 עוף</button>
+        <button class="choice-btn${curProtein === 'beef' ? ' selected' : ''}" onclick="setChoice('${item.id}','beef')">🥩 בקר</button>
         <button class="choice-btn${curProtein === 'beyond' ? ' selected' : ''}" onclick="setChoice('${item.id}','beyond')">🌿 ביונד +10₪</button>
       </div>
       <div class="choice-required" style="${curProtein ? 'display:none' : ''}">⚠️ יש לבחור סוג חלבון</div>
@@ -816,18 +817,18 @@ function buildItemEl(item, section) {
             <div>• חציל על האש</div>
           </div>
         </div>
-        <div style="margin-top:8px;">
-          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">פירה – בחירה:</div>
-          <div class="item-choices">
-            <button class="choice-btn${(choices['w1_mash']||'') === 'dairy' ? ' selected' : ''}" onclick="setChoice('w1_mash','dairy')">חלבי</button>
-            <button class="choice-btn${(choices['w1_mash']||'') === 'parve' ? ' selected' : ''}" onclick="setChoice('w1_mash','parve')">פרווה</button>
-          </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:8px;margin-bottom:4px;">חציל על האש – בחירה:</div>
-          <div class="item-choices">
-            <button class="choice-btn${(choices['w1_salad']||'') === 'tahini' ? ' selected' : ''}" onclick="setChoice('w1_salad','tahini')">טחינה</button>
-            <button class="choice-btn${(choices['w1_salad']||'') === 'mayo' ? ' selected' : ''}" onclick="setChoice('w1_salad','mayo')">מיונז</button>
-          </div>
+        <div class="item-choices" style="margin-top:8px;">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">פירה – בחירה:</div>
+          <button class="choice-btn${(choices['w1_mash']||'') === 'dairy' ? ' selected' : ''}" onclick="setChoice('w1_mash','dairy')">חלבי</button>
+          <button class="choice-btn${(choices['w1_mash']||'') === 'parve' ? ' selected' : ''}" onclick="setChoice('w1_mash','parve')">פרווה</button>
         </div>
+        <div class="choice-required" style="${choices['w1_mash'] ? 'display:none' : ''}">⚠️ יש לבחור חלבי או פרווה לפירה</div>
+        <div class="item-choices" style="margin-top:8px;">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">חציל על האש – בחירה:</div>
+          <button class="choice-btn${(choices['w1_salad']||'') === 'tahini' ? ' selected' : ''}" onclick="setChoice('w1_salad','tahini')">טחינה</button>
+          <button class="choice-btn${(choices['w1_salad']||'') === 'mayo' ? ' selected' : ''}" onclick="setChoice('w1_salad','mayo')">מיונז</button>
+        </div>
+        <div class="choice-required" style="${choices['w1_salad'] ? 'display:none' : ''}">⚠️ יש לבחור טחינה או מיונז לחציל</div>
       ` : ""}
       ${vegNoteHTML}
       ${choiceHTML}
@@ -873,7 +874,11 @@ function changeQty(id, delta, step, minQ) {
   }
   next = Math.max(0, next);
   quantities[id] = next;
-  if (next === 0) delete choices[id];
+  if (next === 0) {
+    delete choices[id];
+    // Clean up weekly bundle sub-choices
+    if (id === "w1") { delete choices["w1_mash"]; delete choices["w1_salad"]; }
+  }
   refreshItem(id);
   updateSummary();
 }
@@ -881,14 +886,22 @@ function changeQty(id, delta, step, minQ) {
 function manualQty(id, raw, step, minQ) {
   const val = parseInt(raw) || 0;
   quantities[id] = Math.max(0, val);
-  if (!quantities[id]) delete choices[id];
+  if (!quantities[id]) {
+    delete choices[id];
+    if (id === "w1") { delete choices["w1_mash"]; delete choices["w1_salad"]; }
+  }
   refreshItem(id);
   updateSummary();
 }
 
 function setChoice(id, value) {
   choices[id] = value;
-  refreshItem(id);
+  // For weekly bundle sub-choices, refresh the parent item w1
+  if (id === "w1_mash" || id === "w1_salad") {
+    refreshItem("w1");
+  } else {
+    refreshItem(id);
+  }
   updateSummary();
 }
 
@@ -951,7 +964,7 @@ function getChoiceLabel(id) {
   if (c === "persian") return " – ברוטב פרסי";
   if (c === "moroccan") return " – ברוטב מרוקאי";
   if (c === "beyond") return " – ביונד מיט";
-  if (c === "chicken") return " – עם עוף";
+  if (c === "beef") return " – עם בקר";
   if (c === "tofu") return " – עם טופו (טבעוני)";
   if (c === "regular") return " – בשר רגיל";
   if (c === "sunny") return " – ביצת עין";
@@ -978,7 +991,7 @@ function getChoiceLabelPadKapao(id) {
   const protein = choices[id] || "";
   const egg = choices[id + "_egg"] || "";
   let label = "";
-  if (protein === "chicken") label += " – עוף";
+  if (protein === "beef") label += " – בקר";
   if (protein === "beyond") label += " – ביונד";
   if (egg === "sunny") label += " + ביצת עין";
   if (egg === "flipped") label += " + ביצת עין הפוכה";
@@ -1078,13 +1091,30 @@ function sendOrder() {
 
   // Check missing choices
   const missingChoice = selected.find(i => {
-    if (!i.checkbox) return false;
+    if (!i.checkbox) {
+      if (i.weeklyDetails) {
+        if (!choices["w1_mash"] || !choices["w1_salad"]) return true;
+      }
+      return false;
+    }
     if (i.checkbox === "pad_kapao") return !choices[i.id] || !choices[i.id + "_egg"];
     if (i.checkbox === "beyond_choice_with_potato") return !choices[i.id] || !choices[i.id + "_potato"];
     return !choices[i.id];
   });
   if (missingChoice) {
-    showToast(`⚠️ יש לבחור אפשרות עבור: ${missingChoice.name}`);
+    if (missingChoice.weeklyDetails) {
+      const missingMash = !choices["w1_mash"];
+      const missingSalad = !choices["w1_salad"];
+      if (missingMash && missingSalad) {
+        showToast("⚠️ יש לבחור סוג פירה וסוג חציל למארז השבועי");
+      } else if (missingMash) {
+        showToast("⚠️ יש לבחור חלבי או פרווה לפירה במארז השבועי");
+      } else {
+        showToast("⚠️ יש לבחור טחינה או מיונז לחציל במארז השבועי");
+      }
+    } else {
+      showToast(`⚠️ יש לבחור אפשרות עבור: ${missingChoice.name}`);
+    }
     const el = document.getElementById("item-" + missingChoice.id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
@@ -1105,16 +1135,14 @@ function sendOrder() {
       const unit = item.fixed ? "יח'" : "גרם";
       const cost = calcItemCost(item).toFixed(1);
       const choiceLabel = item.checkbox === "pad_kapao" ? getChoiceLabelPadKapao(item.id) : (item.checkbox === "beyond_choice_with_potato" ? getChoiceLabelPotatoPie(item.id) : getChoiceLabel(item.id));
-      const totalJars = ["c1","c2","c3","c4","c5","c6"].reduce((s,id) => s + (quantities[id] || 0), 0);
-      const jarNote = item.id.startsWith("c") && totalJars >= 4 ? " [מחיר מבצע 20₪]" : "";
-      let weeklyExtras = "";
+      msg += `- ${item.name}${choiceLabel} – ${qty} ${unit} = ${cost} ₪\n`;
+      // Weekly bundle sub-choices
       if (item.id === "w1") {
-        const mash = choices['w1_mash'];
-        const salad = choices['w1_salad'];
-        if (mash) weeklyExtras += ` | פירה: ${mash === 'dairy' ? 'חלבי' : 'פרווה'}`;
-        if (salad) weeklyExtras += ` | חציל: ${salad === 'tahini' ? 'טחינה' : 'מיונז'}`;
+        const mash = choices["w1_mash"];
+        const salad = choices["w1_salad"];
+        if (mash) msg += `   • פירה: ${mash === "dairy" ? "חלבי" : "פרווה"}\n`;
+        if (salad) msg += `   • חציל על האש: ${salad === "tahini" ? "טחינה" : "מיונז"}\n`;
       }
-      msg += `- ${item.name}${choiceLabel}${weeklyExtras}${jarNote} – ${qty} ${unit} = ${cost} ₪\n`;
     });
   });
 
@@ -1217,12 +1245,20 @@ function toggleWeeklyDetails(e) {
   btn.setAttribute("aria-expanded", !isOpen);
 }
 
+function toggleWeeklyDetails(e) {
+  const btn = e.currentTarget;
+  const content = btn.nextElementSibling;
+  const isOpen = content.style.display !== "none";
+  content.style.display = isOpen ? "none" : "block";
+  btn.textContent = isOpen ? "📋 פירוט ▼" : "📋 פירוט ▲";
+  btn.setAttribute("aria-expanded", !isOpen);
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 renderAll();
 updateSummary();
 setupScrollSpy();
 
 </script>
-
 </body>
 </html>
