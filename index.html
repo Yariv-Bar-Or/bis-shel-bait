@@ -526,7 +526,7 @@ const menu = [
     minGrams: 0,
     minLabel: "מארז קבוע שבועי במחיר מיוחד",
     items: [
-      { id: "w1", name: "מארז שבועי", price: 180, fixed: true, vegan: false, weeklyDetails: true }
+      { id: "w1", name: "מארז שבועי", price: 180, fixed: true, vegan: false, weeklyDetails: true, note: "מספיק ל-4-7 מנות" }
     ]
   },
   {
@@ -553,7 +553,8 @@ const menu = [
       { id: "m13", name: "דג סלמון בחמאת עגבניות ויין לבן", price: 15 },
       { id: "m14", name: "פסטל יווני במילוי חצילים וגבינות", price: 8, veg: true },
       { id: "m15", name: "מוקפץ תאילנדי", price: 7, checkbox: "thai_protein", note: "לבחור: עוף / טופו (טבעוני)" },
-      { id: "m16", name: "פאד קפאו על מצע של אורז לבן", price: 8, veganOption: "beyond", checkbox: "pad_kapao", note: "לבחור: ביצת עין / ביצת עין הפוכה | ניתן עם ביונד (+10 ₪) = טבעוני" }
+      { id: "m16", name: "פאד קפאו על מצע של אורז לבן", price: 8, veganOption: "beyond", checkbox: "pad_kapao", note: "לבחור: ביצת עין / ביצת עין הפוכה | ניתן עם ביונד (+10 ₪) = טבעוני" },
+      { id: "m17", name: "שניצל של בית", price: 7.5 }
     ]
   },
   {
@@ -795,7 +796,6 @@ function buildItemEl(item, section) {
       <div class="item-name">${item.name}${badges}</div>
       <div class="item-meta">
         <span class="item-price">${priceLabel}</span>
-        ${!isFixed ? `<span class="item-price">| ${minLabel}</span>` : ""}
       </div>
       ${item.note ? `<div class="item-note">* ${item.note}</div>` : ""}
       ${item.weeklyDetails ? `
