@@ -26,7 +26,6 @@ body { font-family: 'Segoe UI','Arial Hebrew',Arial,sans-serif; background:var(-
 .tab .cnt { display:inline-block; background:var(--gold); color:white; border-radius:9px; font-size:10px; font-weight:700; padding:1px 5px; margin-right:2px; vertical-align:middle; }
 .panel { display:none; padding:12px 12px 0; }
 .panel.active { display:block; }
-/* add form */
 .add-box { background:white; border:1.5px solid var(--border2); border-radius:14px; padding:14px; margin-bottom:14px; }
 .add-box h2 { font-size:14px; font-weight:700; color:var(--gold-dark); margin-bottom:12px; }
 .form-row { margin-bottom:10px; }
@@ -43,7 +42,6 @@ textarea.fi { resize:vertical; min-height:80px; }
 .btn-parse { width:100%; padding:10px; background:var(--bg3); color:var(--text); border:1.5px solid var(--border2); border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:8px; }
 .btn-parse:hover { background:var(--gold-light); border-color:var(--gold); }
 .paste-hint { font-size:11px; color:var(--text3); margin-bottom:6px; text-align:center; }
-/* cards */
 .order-card { background:white; border:1px solid var(--border); border-radius:12px; padding:13px 13px 10px; margin-bottom:10px; transition:opacity .35s; }
 .order-card.done-fade { opacity:0; pointer-events:none; }
 .card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
@@ -72,7 +70,6 @@ textarea.fi { resize:vertical; min-height:80px; }
 .btn-sm:hover { border-color:var(--gold); color:var(--gold-dark); }
 .btn-sm.red { border-color:var(--red); background:var(--red-bg); color:var(--red-text); }
 .btn-sm.wa  { border-color:var(--wa); background:#e8f9f0; color:#135f33; }
-/* totals */
 .sum-box { background:white; border:1px solid var(--border); border-radius:12px; padding:13px; margin-bottom:12px; }
 .sum-box h3 { font-size:13px; font-weight:700; color:var(--gold-dark); margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:7px; }
 .sum-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:0.5px solid var(--border); font-size:13px; color:var(--text2); }
@@ -86,6 +83,7 @@ textarea.fi { resize:vertical; min-height:80px; }
 .empty-icon { font-size:36px; margin-bottom:10px; }
 .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--text); color:var(--gold-light); border-radius:10px; padding:10px 20px; font-size:13px; font-weight:600; z-index:999; opacity:0; pointer-events:none; transition:all .25s; white-space:nowrap; }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.loading-bar { text-align:center; color:var(--text3); padding:30px; font-size:13px; }
 </style>
 </head>
 <body>
@@ -109,7 +107,7 @@ textarea.fi { resize:vertical; min-height:80px; }
   <div class="tab"        onclick="go('add')"      id="tab-add">➕ הוסף</div>
 </div>
 
-<div class="panel active" id="panel-orders"><div id="lst-orders"></div></div>
+<div class="panel active" id="panel-orders"><div id="lst-orders"><div class="loading-bar">טוען הזמנות...</div></div></div>
 <div class="panel"        id="panel-payments"><div id="lst-payments"></div></div>
 <div class="panel"        id="panel-pickup"><div id="lst-pickup"></div></div>
 
@@ -151,11 +149,56 @@ textarea.fi { resize:vertical; min-height:80px; }
 <div class="toast" id="toast"></div>
 
 <script>
-var PHONE = "972549103442";
-var delivMode = 'pickup';
+var PHONE  = "972549103442";
+var SB_URL = "https://ctcxastuidhusfqffqlh.supabase.co";
+var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0Y3hhc3R1aWRodXNmcWZmcWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDE5NDUsImV4cCI6MjA5ODIxNzk0NX0.iZMOy7aG-F5AEaeBATNYWrQbF0AXd_UC0YJxFBzwLXE";
 
-function db()    { try { return JSON.parse(localStorage.getItem('bis_orders')||'[]'); } catch(e) { return []; } }
-function save(o) { localStorage.setItem('bis_orders', JSON.stringify(o)); }
+var delivMode = 'pickup';
+var orders = [];
+
+function sbFetch(path, method, body) {
+  var opts = {
+    method: method || 'GET',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : ''
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(SB_URL + '/rest/v1/' + path, opts).then(function(r) {
+    if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
+    return r.status === 204 ? null : r.json();
+  });
+}
+
+function loadOrders() {
+  return sbFetch('orders?select=*&order=ts.asc').then(function(data) {
+    orders = data || [];
+    render();
+  }).catch(function(e) {
+    toast('שגיאה בטעינה: ' + e.message);
+  });
+}
+
+function saveOrder(order) {
+  return sbFetch('orders', 'POST', order).then(function() {
+    return loadOrders();
+  });
+}
+
+function updateOrder(id, fields) {
+  return sbFetch('orders?id=eq.' + id, 'PATCH', fields).catch(function(e) {
+    toast('שגיאה בעדכון: ' + e.message);
+  });
+}
+
+function deleteOrderDB(id) {
+  return sbFetch('orders?id=eq.' + id, 'DELETE').then(function() {
+    return loadOrders();
+  });
+}
 
 function toast(msg) {
   var t = document.getElementById('toast');
@@ -179,88 +222,73 @@ function setDel(mode) {
 }
 
 function checkDone(id) {
-  var orders = db();
   var o = orders.find(function(x){ return x.id===id; });
   if (!o || !o.paid || !o.done) return;
   var card = document.getElementById('card-'+id);
   if (card) card.classList.add('done-fade');
   var name = o.name;
   setTimeout(function(){
-    save(db().filter(function(x){ return x.id!==id; }));
-    toast('🎉 הזמנת '+name+' הושלמה ונמחקה');
-    render();
+    deleteOrderDB(id).then(function(){
+      toast('🎉 הזמנת '+name+' הושלמה ונמחקה');
+    });
   }, 380);
 }
 
 function togglePaid(id) {
-  var orders = db();
   var o = orders.find(function(x){ return x.id===id; });
   if (!o) return;
   o.paid = !o.paid;
-  save(orders);
   var cb  = document.getElementById('cb-paid-'+id);
   var lbl = document.getElementById('lbl-paid-'+id);
   if (cb)  cb.checked = o.paid;
   if (lbl) lbl.className = 'chk-lbl' + (o.paid ? ' ck-paid' : '');
   toast(o.paid ? '✅ סומן ששולם' : '↩️ סומן כטרם שולם');
+  updateOrder(id, { paid: o.paid });
   checkDone(id);
 }
 
 function toggleDone(id) {
-  var orders = db();
   var o = orders.find(function(x){ return x.id===id; });
   if (!o) return;
   o.done = !o.done;
-  save(orders);
   var cb  = document.getElementById('cb-done-'+id);
   var lbl = document.getElementById('lbl-done-'+id);
   if (cb)  cb.checked = o.done;
   if (lbl) lbl.className = 'chk-lbl' + (o.done ? ' ck-done' : '');
   toast(o.done ? '📦 סומן כבוצע' : '↩️ בוטל ביצוע');
+  updateOrder(id, { done: o.done });
   checkDone(id);
 }
 
 function saveDT(id) {
   var val = document.getElementById('dt-input-'+id).value;
-  var orders = db();
   var o = orders.find(function(x){ return x.id===id; });
   if (!o) return;
   o.datetime = val || null;
-  save(orders);
-  toast('📅 תאריך ושעה עודכנו');
-  render();
+  updateOrder(id, { datetime: o.datetime }).then(function(){ toast('📅 תאריך ושעה עודכנו'); render(); });
 }
 
 function delOrder(id) {
   if (!confirm('למחוק הזמנה זו?')) return;
-  save(db().filter(function(x){ return x.id!==id; }));
-  render();
-  toast('🗑️ נמחק');
+  deleteOrderDB(id).then(function(){ toast('🗑️ נמחק'); });
 }
 
 function parseOrder() {
   var raw = document.getElementById('paste-in').value.trim();
   if (!raw) { toast('הדבק קודם הודעה'); return; }
-
   var nameM  = raw.match(/שם:\s*([^\n\r]+)/);
   var name   = nameM ? nameM[1].trim() : '';
   var totalM = raw.match(/סה"כ:\s*([\d.,]+)/);
   var amount = totalM ? parseFloat(totalM[1].replace(',','.')) : 0;
   var isDel  = raw.includes('משלוח') && !raw.includes('איסוף עצמי');
-
-  var lines = raw.split('\n').filter(function(l){ return l.trim().startsWith('- '); });
-  var items = lines.map(function(l){ return l.trim().replace(/^- /,''); }).join('\n');
-
+  var lines  = raw.split('\n').filter(function(l){ return l.trim().startsWith('- '); });
+  var items  = lines.map(function(l){ return l.trim().replace(/^- /,''); }).join('\n');
   if (!name) { toast('לא נמצא שם בהודעה'); return; }
-
-  var order = { id:Date.now(), name:name, items:items||raw.trim(), amount:amount,
+  var order = { id: Date.now(), name:name, items:items||raw.trim(), amount:amount,
                 delivery:isDel?'delivery':'pickup', datetime:null, paid:false, done:false, ts:Date.now() };
-  var orders = db();
-  orders.push(order);
-  save(orders);
   document.getElementById('paste-in').value = '';
-  toast('✅ הזמנה נוספה!');
-  go('orders');
+  toast('שומר...');
+  saveOrder(order).then(function(){ toast('✅ הזמנה נוספה!'); go('orders'); });
 }
 
 function addManual() {
@@ -269,17 +297,14 @@ function addManual() {
   var amount   = parseFloat(document.getElementById('m-amount').value) || 0;
   var datetime = document.getElementById('m-datetime').value || null;
   if (!name) { toast('חסר שם לקוח'); return; }
-  var order = { id:Date.now(), name:name, items:items, amount:amount,
+  var order = { id: Date.now(), name:name, items:items, amount:amount,
                 delivery:delivMode, datetime:datetime, paid:false, done:false, ts:Date.now() };
-  var orders = db();
-  orders.push(order);
-  save(orders);
   document.getElementById('m-name').value = '';
   document.getElementById('m-items').value = '';
   document.getElementById('m-amount').value = '';
   document.getElementById('m-datetime').value = '';
-  toast('✅ הזמנה נוספה!');
-  go('orders');
+  toast('שומר...');
+  saveOrder(order).then(function(){ toast('✅ הזמנה נוספה!'); go('orders'); });
 }
 
 function fmtDT(dt) {
@@ -288,14 +313,9 @@ function fmtDT(dt) {
   if (isNaN(d)) return null;
   return d.getDate()+'/'+(d.getMonth()+1)+' '+pad(d.getHours())+':'+pad(d.getMinutes());
 }
-
 function pad(n) { return n < 10 ? '0'+n : ''+n; }
-
 function waLink(text) { return 'https://wa.me/'+PHONE+'?text='+encodeURIComponent(text); }
-
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
 
 function card(o) {
   var tb = o.delivery==='delivery'
@@ -327,65 +347,39 @@ function card(o) {
     + '</div>';
 }
 
-function itemTotals(orders) {
+function itemTotals() {
   var tot = {};
   orders.forEach(function(o) {
     var lines = (o.items||'').split('\n');
     lines.forEach(function(line) {
       line = line.trim().replace(/^-\s*/,'');
       if (!line) return;
-
       var m;
-
-      // Format 1: "Name – sub – NNN גרם = NN ₪"  (WhatsApp form)
       m = line.match(/^(.+?)\s*[-\u2013]\s*(\d+)\s*(גרם|יח')\s*=\s*[\d.]+\s*₪/);
-      if (m) {
-        var name = m[1].trim().split(/\s*[-\u2013]\s*/)[0].trim();
-        var key  = name+'__'+m[3];
-        if (!tot[key]) tot[key] = { name:name, unit:m[3], qty:0 };
-        tot[key].qty += parseInt(m[2]);
-        return;
-      }
-
-      // Format 2: "NNN גרם Name"  (manual reversed)
+      if (m) { add(tot, m[1].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[2]), m[3]); return; }
       m = line.match(/^(\d+)\s*(גרם|יח')\s+(.+?)(?:\s*[-\u2013]\s*[\d.]+)?$/);
-      if (m) {
-        var name = m[3].trim().split(/\s*[-\u2013]\s*/)[0].trim();
-        var key  = name+'__'+m[2];
-        if (!tot[key]) tot[key] = { name:name, unit:m[2], qty:0 };
-        tot[key].qty += parseInt(m[1]);
-        return;
-      }
-
-      // Format 3: "Name – NNN גרם" (no price)
+      if (m) { add(tot, m[3].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[1]), m[2]); return; }
       m = line.match(/^(.+?)\s*[-\u2013]\s*(\d+)\s*(גרם|יח')/);
-      if (m) {
-        var name = m[1].trim().split(/\s*[-\u2013]\s*/)[0].trim();
-        var key  = name+'__'+m[3];
-        if (!tot[key]) tot[key] = { name:name, unit:m[3], qty:0 };
-        tot[key].qty += parseInt(m[2]);
-        return;
-      }
-
-      // Format 4: anything with a number + גרם anywhere
+      if (m) { add(tot, m[1].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[2]), m[3]); return; }
       m = line.match(/(\d+)\s*(גרם|יח')/);
-      if (m) {
-        var name = line.replace(/\d+\s*(גרם|יח').*/, '').replace(/[-\u2013=]/g,'').trim() || line;
-        var key  = name+'__'+m[2];
-        if (!tot[key]) tot[key] = { name:name, unit:m[2], qty:0 };
-        tot[key].qty += parseInt(m[1]);
-      }
+      if (m) { add(tot, line.replace(/\d+\s*(גרם|יח').*/, '').replace(/[-\u2013=]/g,'').trim()||line, parseInt(m[1]), m[2]); }
     });
   });
   return tot;
 }
 
-function fmtQty(qty, unit) {
-  if (unit === 'גרם' && qty >= 1000) return (qty/1000).toFixed(1).replace(/\.0$/,'') + ' ק"ג';
-  return qty + ' ' + unit;
+function add(tot, name, qty, unit) {
+  var key = name+'__'+unit;
+  if (!tot[key]) tot[key] = { name:name, unit:unit, qty:0 };
+  tot[key].qty += qty;
 }
 
-function sorted(orders) {
+function fmtQty(qty, unit) {
+  if (unit==='גרם' && qty>=1000) return (qty/1000).toFixed(1).replace(/\.0$/,'')+' ק"ג';
+  return qty+' '+unit;
+}
+
+function sorted() {
   return orders.slice().sort(function(a,b) {
     var da = a.datetime ? new Date(a.datetime) : new Date(9999,0,1);
     var db = b.datetime ? new Date(b.datetime) : new Date(9999,0,1);
@@ -393,17 +387,16 @@ function sorted(orders) {
   });
 }
 
-function groupByDay(orders) {
+function groupByDay(arr) {
   var byDay = {};
-  orders.forEach(function(o) {
+  arr.forEach(function(o) {
     var k = 'ללא תאריך';
     if (o.datetime) { var d=new Date(o.datetime); if(!isNaN(d)) k=d.getDate()+'/'+(d.getMonth()+1); }
-    if (!byDay[k]) byDay[k] = [];
+    if (!byDay[k]) byDay[k]=[];
     byDay[k].push(o);
   });
   var days = Object.keys(byDay).sort(function(a,b) {
-    if (a==='ללא תאריך') return 1;
-    if (b==='ללא תאריך') return -1;
+    if (a==='ללא תאריך') return 1; if (b==='ללא תאריך') return -1;
     var pa=a.split('/'), pb=b.split('/');
     return (parseInt(pa[1])-parseInt(pb[1])) || (parseInt(pa[0])-parseInt(pb[0]));
   });
@@ -411,125 +404,84 @@ function groupByDay(orders) {
 }
 
 function sendWaTotals() {
-  var orders = db();
-  var tot  = itemTotals(orders);
+  var tot  = itemTotals();
   var keys = Object.keys(tot).sort();
   var msg  = '\u{1F4CA} *סיכום כמויות \u2013 ביס של בית*\n\n';
-  if (keys.length) {
-    keys.forEach(function(k) { msg += '\u2022 '+tot[k].name+': *'+fmtQty(tot[k].qty,tot[k].unit)+'*\n'; });
-  } else {
-    msg += '(לא ניתן לנתח פריטים)\n';
-  }
-  msg += '\nסה"כ '+orders.length+' הזמנות';
-  window.open(waLink(msg), '_blank');
+  if (keys.length) keys.forEach(function(k){ msg+='\u2022 '+tot[k].name+': *'+fmtQty(tot[k].qty,tot[k].unit)+'*\n'; });
+  else msg+='(לא ניתן לנתח פריטים)\n';
+  msg+='\nסה"כ '+orders.length+' הזמנות';
+  window.open(waLink(msg),'_blank');
 }
 
 function sendWaPayments() {
-  var orders = db();
-  var unpaid = orders.filter(function(o){ return !o.paid; });
-  var paid   = orders.filter(function(o){ return o.paid; });
-  var tU = unpaid.reduce(function(s,o){ return s+(o.amount||0); }, 0);
-  var tP = paid.reduce(function(s,o){ return s+(o.amount||0); }, 0);
-  var msg = '\u{1F4B3} *סיכום תשלומים \u2013 ביס של בית*\n\n\u23F3 *טרם שולם ('+unpaid.length+')*\n';
-  unpaid.forEach(function(o){ msg += '\u2022 '+o.name+' \u2013 '+o.amount+' \u20AA\n'; });
-  msg += '\n\u2705 *שולם ('+paid.length+')*\n';
-  paid.forEach(function(o){ msg += '\u2022 '+o.name+' \u2013 '+o.amount+' \u20AA\n'; });
-  msg += '\n\u{1F4B0} שולם: '+tP+' \u20AA | ממתין: '+tU+' \u20AA';
-  window.open(waLink(msg), '_blank');
+  var unpaid=orders.filter(function(o){return !o.paid;}), paid=orders.filter(function(o){return o.paid;});
+  var tU=unpaid.reduce(function(s,o){return s+(o.amount||0);},0), tP=paid.reduce(function(s,o){return s+(o.amount||0);},0);
+  var msg='\u{1F4B3} *סיכום תשלומים \u2013 ביס של בית*\n\n\u23F3 *טרם שולם ('+unpaid.length+')*\n';
+  unpaid.forEach(function(o){msg+='\u2022 '+o.name+' \u2013 '+o.amount+' \u20AA\n';});
+  msg+='\n\u2705 *שולם ('+paid.length+')*\n';
+  paid.forEach(function(o){msg+='\u2022 '+o.name+' \u2013 '+o.amount+' \u20AA\n';});
+  msg+='\n\u{1F4B0} שולם: '+tP+' \u20AA | ממתין: '+tU+' \u20AA';
+  window.open(waLink(msg),'_blank');
 }
 
 function sendWaPickup() {
-  var orders = db();
-  var s = sorted(orders);
-  var g = groupByDay(s);
-  var msg = '\u{1F5D3}\uFE0F *סיכום איסוף/משלוח \u2013 ביס של בית*\n\n';
-  g.days.forEach(function(day) {
-    msg += '\u{1F4C5} *'+day+'*\n';
-    g.byDay[day].forEach(function(o) {
-      var type = o.delivery==='delivery' ? '\u{1F6F5}' : '\u{1F6B6}';
-      var time = '';
-      if (o.datetime) { var d=new Date(o.datetime); time=' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
-      msg += type+time+' '+o.name+' \u2013 '+o.amount+' \u20AA\n';
+  var g=groupByDay(sorted());
+  var msg='\u{1F5D3}\uFE0F *סיכום איסוף/משלוח \u2013 ביס של בית*\n\n';
+  g.days.forEach(function(day){
+    msg+='\u{1F4C5} *'+day+'*\n';
+    g.byDay[day].forEach(function(o){
+      var type=o.delivery==='delivery'?'\u{1F6F5}':'\u{1F6B6}';
+      var time='';
+      if(o.datetime){var d=new Date(o.datetime);time=' '+pad(d.getHours())+':'+pad(d.getMinutes());}
+      msg+=type+time+' '+o.name+' \u2013 '+o.amount+' \u20AA\n';
     });
-    msg += '\n';
+    msg+='\n';
   });
-  window.open(waLink(msg), '_blank');
+  window.open(waLink(msg),'_blank');
 }
 
 function render() {
-  var orders = db();
-  var total  = orders.reduce(function(s,o){ return s+(o.amount||0); }, 0);
-  var unpaid = orders.filter(function(o){ return !o.paid; });
-  var paid   = orders.filter(function(o){ return o.paid; });
-
-  document.getElementById('hdr-cnt').textContent   = orders.length;
-  document.getElementById('hdr-sum').textContent   = '\u20AA'+total.toFixed(0);
-  document.getElementById('cnt-orders').textContent = orders.length;
-  document.getElementById('cnt-unpaid').textContent = unpaid.length;
-  document.getElementById('cnt-pickup').textContent = orders.length;
-
-  var s = sorted(orders);
-
-  // ORDERS
+  var total  = orders.reduce(function(s,o){return s+(o.amount||0);},0);
+  var unpaid = orders.filter(function(o){return !o.paid;});
+  var paid   = orders.filter(function(o){return o.paid;});
+  document.getElementById('hdr-cnt').textContent    = orders.length;
+  document.getElementById('hdr-sum').textContent    = '\u20AA'+total.toFixed(0);
+  document.getElementById('cnt-orders').textContent  = orders.length;
+  document.getElementById('cnt-unpaid').textContent  = unpaid.length;
+  document.getElementById('cnt-pickup').textContent  = orders.length;
+  var s = sorted();
   var ol = document.getElementById('lst-orders');
-  ol.innerHTML = orders.length
-    ? s.map(card).join('')
-    : '<div class="empty"><div class="empty-icon">📭</div>אין הזמנות עדיין.<br>הוסף בלשונית ➕</div>';
-
-  // PAYMENTS
+  ol.innerHTML = orders.length ? s.map(card).join('') : '<div class="empty"><div class="empty-icon">📭</div>אין הזמנות עדיין.<br>הוסף בלשונית ➕</div>';
   var pl = document.getElementById('lst-payments');
-  if (!orders.length) {
-    pl.innerHTML = '<div class="empty"><div class="empty-icon">💳</div>אין הזמנות</div>';
-  } else {
-    var h = '';
-    if (unpaid.length) {
-      h += '<div class="sec-lbl" style="color:var(--red-text);background:var(--red-bg);">⏳ טרם שולם ('+unpaid.length+')</div>';
-      h += unpaid.map(card).join('');
-    }
-    if (paid.length) {
-      h += '<div class="sec-lbl" style="color:var(--green-text);background:var(--green-bg);margin-top:8px;">✅ שולם ('+paid.length+')</div>';
-      h += paid.map(card).join('');
-    }
-    pl.innerHTML = h;
+  if (!orders.length) { pl.innerHTML='<div class="empty"><div class="empty-icon">💳</div>אין הזמנות</div>'; }
+  else {
+    var h='';
+    if (unpaid.length) { h+='<div class="sec-lbl" style="color:var(--red-text);background:var(--red-bg);">⏳ טרם שולם ('+unpaid.length+')</div>'+unpaid.map(card).join(''); }
+    if (paid.length)   { h+='<div class="sec-lbl" style="color:var(--green-text);background:var(--green-bg);margin-top:8px;">✅ שולם ('+paid.length+')</div>'+paid.map(card).join(''); }
+    pl.innerHTML=h;
   }
-
-  // PICKUP
-  var pkl = document.getElementById('lst-pickup');
-  if (!orders.length) {
-    pkl.innerHTML = '<div class="empty"><div class="empty-icon">🗓️</div>אין הזמנות</div>';
-  } else {
-    var g = groupByDay(s);
-    pkl.innerHTML = g.days.map(function(day) {
-      return '<div class="sec-lbl" style="color:var(--gold-dark);background:var(--gold-light);">📅 '+day+' ('+g.byDay[day].length+')</div>'
-        + g.byDay[day].map(card).join('');
+  var pkl=document.getElementById('lst-pickup');
+  if (!orders.length) { pkl.innerHTML='<div class="empty"><div class="empty-icon">🗓️</div>אין הזמנות</div>'; }
+  else {
+    var g=groupByDay(s);
+    pkl.innerHTML=g.days.map(function(day){
+      return '<div class="sec-lbl" style="color:var(--gold-dark);background:var(--gold-light);">📅 '+day+' ('+g.byDay[day].length+')</div>'+g.byDay[day].map(card).join('');
     }).join('');
   }
-
-  // TOTALS
-  var tot  = itemTotals(orders);
-  var keys = Object.keys(tot).sort();
-  var ti   = document.getElementById('tot-items');
-  if (!orders.length) {
-    ti.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">אין הזמנות</div>';
-  } else if (!keys.length) {
-    ti.innerHTML = '<div style="color:var(--text3);font-size:12px;">לא ניתן לנתח פריטים</div>';
-  } else {
-    ti.innerHTML = keys.map(function(k) {
-      return '<div class="sum-row"><span>'+esc(tot[k].name)+'</span><span class="qty">'+fmtQty(tot[k].qty,tot[k].unit)+'</span></div>';
-    }).join('');
-  }
-
-  var tAll = orders.reduce(function(s,o){ return s+(o.amount||0); }, 0);
-  var tP   = paid.reduce(function(s,o){ return s+(o.amount||0); }, 0);
-  var tU   = unpaid.reduce(function(s,o){ return s+(o.amount||0); }, 0);
-  document.getElementById('tot-money').innerHTML =
+  var tot=itemTotals(), keys=Object.keys(tot).sort(), ti=document.getElementById('tot-items');
+  if (!orders.length) ti.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">אין הזמנות</div>';
+  else if (!keys.length) ti.innerHTML='<div style="color:var(--text3);font-size:12px;">לא ניתן לנתח פריטים</div>';
+  else ti.innerHTML=keys.map(function(k){return '<div class="sum-row"><span>'+esc(tot[k].name)+'</span><span class="qty">'+fmtQty(tot[k].qty,tot[k].unit)+'</span></div>';}).join('');
+  var tAll=total, tP=paid.reduce(function(s,o){return s+(o.amount||0);},0), tU=unpaid.reduce(function(s,o){return s+(o.amount||0);},0);
+  document.getElementById('tot-money').innerHTML=
     '<div class="sum-row"><span>סה"כ הזמנות</span><span class="qty">'+orders.length+'</span></div>'
-    + '<div class="sum-row"><span>שולם</span><span class="qty" style="color:var(--green)">'+tP.toFixed(0)+' ₪</span></div>'
-    + '<div class="sum-row"><span>ממתין</span><span class="qty" style="color:var(--red)">'+tU.toFixed(0)+' ₪</span></div>'
-    + '<div class="sum-total"><span>סה"כ</span><span class="amt">'+tAll.toFixed(0)+' ₪</span></div>';
+    +'<div class="sum-row"><span>שולם</span><span class="qty" style="color:var(--green)">'+tP.toFixed(0)+' ₪</span></div>'
+    +'<div class="sum-row"><span>ממתין</span><span class="qty" style="color:var(--red)">'+tU.toFixed(0)+' ₪</span></div>'
+    +'<div class="sum-total"><span>סה"כ</span><span class="amt">'+tAll.toFixed(0)+' ₪</span></div>';
 }
 
-render();
+loadOrders();
+setInterval(loadOrders, 30000);
 </script>
 </body>
 </html>
