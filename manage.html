@@ -261,10 +261,11 @@ function deleteOrder(id) {
 function parseOrder() {
   const raw = document.getElementById('paste-input').value.trim();
   if (!raw) { toast('הדבק קודם הודעה'); return; }
-  const nameMatch  = raw.match(/שם:\s*(.+)/);
+  // Name: grab everything after "שם:" on the same line, strip extra spaces/CR
+  const nameMatch  = raw.match(/שם:\s*([^\n\r]+)/);
   const name       = nameMatch ? nameMatch[1].trim() : '';
   const totalMatch = raw.match(/סה"כ:\s*([\d.,]+)/);
-  const amount     = totalMatch ? parseFloat(totalMatch[1]) : 0;
+  const amount     = totalMatch ? parseFloat(totalMatch[1].replace(',','.')) : 0;
   const isDelivery = raw.includes('משלוח') && !raw.includes('איסוף עצמי');
   const lines      = raw.split('\n').filter(l => l.trim().startsWith('- '));
   const itemsText  = lines.map(l => l.trim().replace(/^- /,'')).join('\n');
@@ -348,11 +349,20 @@ function computeItemTotals(orders) {
     (o.items||'').split('\n').forEach(line => {
       line = line.trim().replace(/^- /,'').trim();
       if (!line) return;
-      const m = line.match(/^(.+?)\s*[-–]\s*(\d+)\s*(גרם|יח')\s*=?\s*([\d.]+)?\s*₪?$/);
+      // Match: anything – NNN גרם/יח' = NNN ₪
+      // Handles multiple dashes e.g. "קציצות עוף – ברוטב פרסי – 800 גרם = 68.0 ₪"
+      const m = line.match(/^(.+?)\s*[-–]\s*(\d+)\s*(גרם|יח')\s*=\s*([\d.]+)\s*₪/);
       if (m) {
-        const key = `${m[1].trim()}__${m[3]}`;
-        if (!totals[key]) totals[key] = { name:m[1].trim(), unit:m[3], qty:0 };
-        totals[key].qty += parseInt(m[2]);
+        // Full name = everything before the quantity segment
+        // e.g. "קציצות עוף – ברוטב פרסי" → keep as-is for display
+        const fullName = m[1].trim();
+        // Base name = first segment before first dash (for grouping similar items)
+        const baseName = fullName.split(/\s*[-–]\s*/)[0].trim();
+        const qty  = parseInt(m[2]);
+        const unit = m[3];
+        const key  = `${baseName}__${unit}`;
+        if (!totals[key]) totals[key] = { name: baseName, unit, qty: 0 };
+        totals[key].qty += qty;
       }
     });
   });
