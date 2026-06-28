@@ -84,6 +84,15 @@ textarea.fi { resize:vertical; min-height:80px; }
 .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--text); color:var(--gold-light); border-radius:10px; padding:10px 20px; font-size:13px; font-weight:600; z-index:999; opacity:0; pointer-events:none; transition:all .25s; white-space:nowrap; }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 .loading-bar { text-align:center; color:var(--text3); padding:30px; font-size:13px; }
+.item-row { border-bottom:0.5px solid var(--border); padding:8px 0; }
+.item-row:last-child { border-bottom:none; }
+.item-top { display:flex; align-items:center; gap:8px; }
+.item-top input[type=checkbox] { width:18px; height:18px; accent-color:var(--green); cursor:pointer; flex-shrink:0; }
+.item-name { flex:1; font-size:13px; color:var(--text2); }
+.item-name.done-item { text-decoration:line-through; color:var(--text3); }
+.item-qty { font-weight:700; font-size:13px; color:var(--text); white-space:nowrap; }
+.item-note { width:100%; margin-top:6px; padding:6px 9px; border:1px solid var(--border2); border-radius:7px; font-size:12px; font-family:inherit; color:var(--text); background:var(--bg); outline:none; resize:none; }
+.item-note:focus { border-color:var(--gold); background:white; }
 </style>
 </head>
 <body>
@@ -163,7 +172,7 @@ function sbFetch(path, method, body) {
       'apikey': SB_KEY,
       'Authorization': 'Bearer ' + SB_KEY,
       'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'return=representation' : ''
+      'Prefer': method === 'POST' ? 'return=representation,resolution=merge-duplicates' : ''
     }
   };
   if (body) opts.body = JSON.stringify(body);
@@ -403,6 +412,59 @@ function groupByDay(arr) {
   return { byDay:byDay, days:days };
 }
 
+// ── ITEM CHECKLIST STATE (Supabase) ──
+var itemStates = {};
+
+function safeKey(k) { return k.replace(/[^a-zA-Zא-ת0-9]/g, '_'); }
+
+function loadItemStates() {
+  return sbFetch('item_notes?select=*').then(function(data) {
+    itemStates = {};
+    (data||[]).forEach(function(row) { itemStates[row.key] = row; });
+  }).catch(function(e) { console.log('item_notes load error:', e); });
+}
+
+function upsertItemState(k, fields) {
+  var body = Object.assign({ key: k }, fields);
+  return sbFetch('item_notes?on_conflict=key', 'POST', body).catch(function(e) {
+    console.log('item_notes upsert error:', e);
+  });
+}
+
+function toggleItemDone(k) {
+  if (!itemStates[k]) itemStates[k] = { key: k, done: false, note: '' };
+  itemStates[k].done = !itemStates[k].done;
+  var cb  = document.getElementById('icb-'+k);
+  var lbl = document.getElementById('iname-'+k);
+  if (cb)  cb.checked = itemStates[k].done;
+  if (lbl) lbl.className = 'item-name' + (itemStates[k].done ? ' done-item' : '');
+  upsertItemState(k, { done: itemStates[k].done, note: itemStates[k].note || '' });
+}
+
+function saveItemNote(k) {
+  var el = document.getElementById('inote-'+k);
+  if (!el) return;
+  if (!itemStates[k]) itemStates[k] = { key: k, done: false, note: '' };
+  itemStates[k].note = el.value;
+  upsertItemState(k, { done: itemStates[k].done || false, note: el.value });
+}
+
+function renderTotItems(tot, keys) {
+  return keys.map(function(k) {
+    var item = tot[k];
+    var sk   = safeKey(k);
+    var st   = itemStates[sk] || {};
+    return '<div class="item-row">'
+      + '<div class="item-top">'
+      + '<input type="checkbox" id="icb-'+sk+'" '+(st.done?'checked':'')+' onclick="toggleItemDone(\''+sk+'\')"> '
+      + '<span class="item-name'+(st.done?' done-item':'')+'" id="iname-'+sk+'">'+esc(item.name)+'</span>'
+      + '<span class="item-qty">'+fmtQty(item.qty,item.unit)+'</span>'
+      + '</div>'
+      + '<textarea class="item-note" id="inote-'+sk+'" rows="1" placeholder="הערה..." onchange="saveItemNote(\''+sk+'\')">'+esc(st.note||'')+'</textarea>'
+      + '</div>';
+  }).join('');
+}
+
 function sendWaTotals() {
   var tot  = itemTotals();
   var keys = Object.keys(tot).sort();
@@ -471,7 +533,7 @@ function render() {
   var tot=itemTotals(), keys=Object.keys(tot).sort(), ti=document.getElementById('tot-items');
   if (!orders.length) ti.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">אין הזמנות</div>';
   else if (!keys.length) ti.innerHTML='<div style="color:var(--text3);font-size:12px;">לא ניתן לנתח פריטים</div>';
-  else ti.innerHTML=keys.map(function(k){return '<div class="sum-row"><span>'+esc(tot[k].name)+'</span><span class="qty">'+fmtQty(tot[k].qty,tot[k].unit)+'</span></div>';}).join('');
+  else ti.innerHTML=renderTotItems(tot, keys);
   var tAll=total, tP=paid.reduce(function(s,o){return s+(o.amount||0);},0), tU=unpaid.reduce(function(s,o){return s+(o.amount||0);},0);
   document.getElementById('tot-money').innerHTML=
     '<div class="sum-row"><span>סה"כ הזמנות</span><span class="qty">'+orders.length+'</span></div>'
@@ -480,8 +542,11 @@ function render() {
     +'<div class="sum-total"><span>סה"כ</span><span class="amt">'+tAll.toFixed(0)+' ₪</span></div>';
 }
 
-loadOrders();
-setInterval(loadOrders, 30000);
+function loadAll() {
+  return Promise.all([loadOrders(), loadItemStates()]).then(function() { render(); });
+}
+loadAll();
+setInterval(loadAll, 30000);
 </script>
 </body>
 </html>
