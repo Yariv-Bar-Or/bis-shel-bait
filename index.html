@@ -681,7 +681,7 @@ function buildItemEl(item, section) {
   const minQ = isFixed ? (item.minUnits || 1) : (item.minGrams || section.minGrams);
   const hasQty = qty > 0;
   const isError = hasQty && qty < minQ;
-  const weeklyChoiceNeeded = hasQty && item.weeklyDetails && (getBundleDishes().length !== 4 || getBundleDishes().some(d => bundleDishMissingChoice(d)));
+  const weeklyChoiceNeeded = hasQty && item.weeklyDetails && (getBundleDishes().length !== getBundleMaxDishes() || bundleAllSlotsMissingChoice());
   const choiceNeeded = (hasQty && item.checkbox && !choices[item.id]) || weeklyChoiceNeeded;
 
   const div = document.createElement("div");
@@ -864,14 +864,14 @@ function buildItemEl(item, section) {
 
 // ── WEEKLY BUNDLE PICKER UI ─────────────────────────────────────────────────
 
-function buildBundleDishSubChoiceHTML(dishId, subChoice) {
-  const base = "w1_dish_" + dishId;
+function buildBundleDishSubChoiceHTML(slotIndex, subChoice) {
+  const base = "w1_dish_" + slotIndex;
   if (subChoice === "sauce_persian_moroccan") {
     const cur = choices[base];
     return `
       <div class="item-choices" style="margin-top:6px;">
-        <button class="choice-btn${cur === 'persian' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','','persian')">🫙 פרסי</button>
-        <button class="choice-btn${cur === 'moroccan' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','','moroccan')">🌶️ מרוקאי</button>
+        <button class="choice-btn${cur === 'persian' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'','persian')">🫙 פרסי</button>
+        <button class="choice-btn${cur === 'moroccan' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'','moroccan')">🌶️ מרוקאי</button>
       </div>
       <div class="choice-required" style="${cur ? 'display:none' : ''}">⚠️ יש לבחור רוטב</div>`;
   }
@@ -879,8 +879,8 @@ function buildBundleDishSubChoiceHTML(dishId, subChoice) {
     const cur = choices[base];
     return `
       <div class="item-choices" style="margin-top:6px;">
-        <button class="choice-btn${cur === 'regular' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','','regular')">🥩 בשר רגיל</button>
-        <button class="choice-btn${cur === 'beyond' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','','beyond')">🌿 ביונד +10₪</button>
+        <button class="choice-btn${cur === 'regular' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'','regular')">🥩 בשר רגיל</button>
+        <button class="choice-btn${cur === 'beyond' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'','beyond')">🌿 ביונד +10₪</button>
       </div>
       <div class="choice-required" style="${cur ? 'display:none' : ''}">⚠️ יש לבחור סוג בשר</div>`;
   }
@@ -889,13 +889,13 @@ function buildBundleDishSubChoiceHTML(dishId, subChoice) {
     const curEgg = choices[base + "_egg"];
     return `
       <div class="item-choices" style="margin-top:6px;">
-        <button class="choice-btn${curProtein === 'beef' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','','beef')">🥩 בקר</button>
-        <button class="choice-btn${curProtein === 'beyond' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','','beyond')">🌿 ביונד +10₪</button>
+        <button class="choice-btn${curProtein === 'beef' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'','beef')">🥩 בקר</button>
+        <button class="choice-btn${curProtein === 'beyond' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'','beyond')">🌿 ביונד +10₪</button>
       </div>
       <div class="choice-required" style="${curProtein ? 'display:none' : ''}">⚠️ יש לבחור סוג חלבון</div>
       <div class="item-choices" style="margin-top:6px;">
-        <button class="choice-btn${curEgg === 'sunny' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','egg','sunny')">ביצת עין</button>
-        <button class="choice-btn${curEgg === 'flipped' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','egg','flipped')">ביצת עין הפוכה</button>
+        <button class="choice-btn${curEgg === 'sunny' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'egg','sunny')">ביצת עין</button>
+        <button class="choice-btn${curEgg === 'flipped' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'egg','flipped')">ביצת עין הפוכה</button>
       </div>
       <div class="choice-required" style="${curEgg ? 'display:none' : ''}">⚠️ יש לבחור סגנון ביצה</div>`;
   }
@@ -905,18 +905,18 @@ function buildBundleDishSubChoiceHTML(dishId, subChoice) {
     const curSauce = choices[base + "_sauce"];
     return `
       <div class="item-choices" style="margin-top:6px;">
-        <button class="choice-btn${curProtein === 'tofu' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','','tofu')">🌿 טופו</button>
-        <button class="choice-btn${curProtein === 'beyond' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','','beyond')">🌿 ביונד +10₪</button>
+        <button class="choice-btn${curProtein === 'tofu' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'','tofu')">🌿 טופו</button>
+        <button class="choice-btn${curProtein === 'beyond' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'','beyond')">🌿 ביונד +10₪</button>
       </div>
       <div class="choice-required" style="${curProtein ? 'display:none' : ''}">⚠️ יש לבחור טופו או ביונד</div>
       <div class="item-choices" style="margin-top:6px;">
-        <button class="choice-btn${curStyle === 'vegan' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','style','vegan')">🌿 טבעוני</button>
-        <button class="choice-btn${curStyle === 'veggie' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','style','veggie')">🌱 צמחוני</button>
+        <button class="choice-btn${curStyle === 'vegan' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'style','vegan')">🌿 טבעוני</button>
+        <button class="choice-btn${curStyle === 'veggie' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'style','veggie')">🌱 צמחוני</button>
       </div>
       <div class="choice-required" style="${curStyle ? 'display:none' : ''}">⚠️ יש לבחור טבעוני או צמחוני</div>
       <div class="item-choices" style="margin-top:6px;">
-        <button class="choice-btn${curSauce === 'persian' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','sauce','persian')">🫙 פרסי</button>
-        <button class="choice-btn${curSauce === 'moroccan' ? ' selected' : ''}" onclick="setBundleDishChoice('${dishId}','sauce','moroccan')">🌶️ מרוקאי</button>
+        <button class="choice-btn${curSauce === 'persian' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'sauce','persian')">🫙 פרסי</button>
+        <button class="choice-btn${curSauce === 'moroccan' ? ' selected' : ''}" onclick="setBundleDishChoice(${slotIndex},'sauce','moroccan')">🌶️ מרוקאי</button>
       </div>
       <div class="choice-required" style="${curSauce ? 'display:none' : ''}">⚠️ יש לבחור רוטב</div>`;
   }
@@ -925,30 +925,39 @@ function buildBundleDishSubChoiceHTML(dishId, subChoice) {
 
 function buildBundlePickerHTML() {
   const selected = getBundleDishes();
+  const unitCount = getBundleUnitCount();
+  const maxTotal = getBundleMaxDishes();
+
   const dishButtons = BUNDLE_DISHES.map(dish => {
-    const isSel = selected.includes(dish.id);
-    const blocked = !isSel && selected.length >= 4;
-    return `<button class="choice-btn${isSel ? ' selected' : ''}" style="${blocked ? 'opacity:0.4;' : ''}" onclick="toggleBundleDish('${dish.id}')">${dish.name}</button>`;
+    const countForDish = getBundleDishCount(dish.id);
+    const blocked = countForDish >= unitCount || selected.length >= maxTotal;
+    const countBadge = countForDish > 0 ? ` (${countForDish})` : "";
+    return `<button class="choice-btn${countForDish > 0 ? ' selected' : ''}" style="${blocked && countForDish === 0 ? 'opacity:0.4;' : ''}" onclick="incrementBundleDish('${dish.id}')">${dish.name}${countBadge}</button>`;
   }).join("");
 
-  const selectedBlocks = selected.map(dishId => {
+  const selectedBlocks = selected.map((dishId, idx) => {
     const dish = BUNDLE_DISHES.find(d => d.id === dishId);
     if (!dish) return "";
-    const subHTML = dish.subChoice ? buildBundleDishSubChoiceHTML(dish.id, dish.subChoice) : "";
+    const subHTML = dish.subChoice ? buildBundleDishSubChoiceHTML(idx, dish.subChoice) : "";
     return `
       <div style="margin-top:10px;padding:8px 10px;background:var(--bg2);border-radius:8px;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);">✓ ${dish.name}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">✓ מנה ${idx + 1}: ${dish.name}</div>
+          <button onclick="decrementBundleDish('${dishId}')" style="background:none;border:none;color:var(--red-text,#c0392b);font-size:12px;cursor:pointer;padding:0;">הסר</button>
+        </div>
         ${subHTML}
       </div>`;
   }).join("");
 
-  const countLabel = `<div style="font-size:13px;color:var(--text2);margin-top:8px;">נבחרו ${selected.length} מתוך 4 מנות</div>`;
+  const bundleNote = unitCount > 1
+    ? `<div style="font-size:13px;color:var(--text2);margin-top:8px;">נבחרו ${selected.length} מתוך ${maxTotal} מנות (${unitCount} מארזים × 4)</div>`
+    : `<div style="font-size:13px;color:var(--text2);margin-top:8px;">נבחרו ${selected.length} מתוך 4 מנות</div>`;
 
   return `
     <div style="margin-top:10px;">
-      <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">בחירת מנות (4 מתוך 7):</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">בחירת מנות (4 לכל מארז, מתוך 7 אפשרויות):</div>
       <div class="item-choices">${dishButtons}</div>
-      ${countLabel}
+      ${bundleNote}
       ${selectedBlocks}
       <div style="margin-top:10px;padding:8px 10px;background:var(--bg2);border-radius:8px;font-size:13px;color:var(--text2);">
         <div><strong>תוספות (כלולות):</strong> מג'דרה, תפוחי אדמה בתנור</div>
@@ -971,6 +980,8 @@ function changeQty(id, delta, step, minQ) {
     delete choices[id];
     // Clean up weekly bundle sub-choices
     if (id === "w1") clearBundleChoices();
+  } else if (id === "w1") {
+    trimBundleDishesToMax();
   }
   refreshItem(id);
   updateSummary();
@@ -982,6 +993,8 @@ function manualQty(id, raw, step, minQ) {
   if (!quantities[id]) {
     delete choices[id];
     if (id === "w1") clearBundleChoices();
+  } else if (id === "w1") {
+    trimBundleDishesToMax();
   }
   refreshItem(id);
   updateSummary();
@@ -1008,41 +1021,106 @@ function clearBundleChoices() {
   delete choices["w1_salad"];
 }
 
+function trimBundleDishesToMax() {
+  const max = getBundleMaxDishes();
+  let list = getBundleDishes().slice();
+  if (list.length <= max) return;
+  // Remove extra slots from the end, reindexing sub-choices as we go
+  while (list.length > max) {
+    const removeIdx = list.length - 1;
+    list.splice(removeIdx, 1);
+    reindexBundleSubChoices(removeIdx, list.length);
+  }
+  choices["w1_dishes"] = list;
+}
+
 function getBundleDishes() {
   return choices["w1_dishes"] || [];
 }
 
-function toggleBundleDish(dishId) {
+function getBundleUnitCount() {
+  return quantities["w1"] || 0;
+}
+
+function getBundleDishCount(dishId) {
+  return getBundleDishes().filter(d => d === dishId).length;
+}
+
+function getBundleMaxDishes() {
+  return 4 * getBundleUnitCount();
+}
+
+function incrementBundleDish(dishId) {
   let list = getBundleDishes().slice();
-  const idx = list.indexOf(dishId);
-  if (idx >= 0) {
-    list.splice(idx, 1);
-    // Clean up that dish's sub-choices
-    Object.keys(choices).forEach(k => {
-      if (k === "w1_dish_" + dishId || k.startsWith("w1_dish_" + dishId + "_")) delete choices[k];
-    });
-  } else {
-    if (list.length >= 4) {
-      showToast("⚠️ ניתן לבחור עד 4 מנות במארז");
-      return;
-    }
-    list.push(dishId);
+  const unitCount = getBundleUnitCount();
+  const maxTotal = 4 * unitCount;
+  const curCount = list.filter(d => d === dishId).length;
+  if (curCount >= unitCount) {
+    showToast(`⚠️ ניתן לבחור מנה זו עד ${unitCount} פעמים (לפי כמות המארזים)`);
+    return;
   }
+  if (list.length >= maxTotal) {
+    showToast(`⚠️ ניתן לבחור עד ${maxTotal} מנות (4 לכל מארז)`);
+    return;
+  }
+  list.push(dishId);
   choices["w1_dishes"] = list;
   refreshItem("w1");
   updateSummary();
 }
 
-function setBundleDishChoice(dishId, key, value) {
-  choices["w1_dish_" + dishId + (key ? "_" + key : "")] = value;
+function reindexBundleSubChoices(removedIdx, newLength) {
+  // After removing slot `removedIdx`, every slot with index > removedIdx shifts down by 1.
+  // Rebuild the w1_dish_* keys accordingly.
+  const oldChoices = {};
+  Object.keys(choices).forEach(k => {
+    if (k.startsWith("w1_dish_")) {
+      oldChoices[k] = choices[k];
+      delete choices[k];
+    }
+  });
+  // total old slot count = newLength + 1 (one was removed)
+  const oldLength = newLength + 1;
+  for (let oldIdx = 0; oldIdx < oldLength; oldIdx++) {
+    if (oldIdx === removedIdx) continue;
+    const newIdx = oldIdx < removedIdx ? oldIdx : oldIdx - 1;
+    const oldBase = "w1_dish_" + oldIdx;
+    const newBase = "w1_dish_" + newIdx;
+    Object.keys(oldChoices).forEach(k => {
+      if (k === oldBase || k.startsWith(oldBase + "_")) {
+        const suffix = k.slice(oldBase.length);
+        choices[newBase + suffix] = oldChoices[k];
+      }
+    });
+  }
+}
+
+function decrementBundleDish(dishId) {
+  let list = getBundleDishes().slice();
+  const idx = list.lastIndexOf(dishId);
+  if (idx < 0) return;
+  list.splice(idx, 1);
+  reindexBundleSubChoices(idx, list.length);
+  choices["w1_dishes"] = list;
   refreshItem("w1");
   updateSummary();
 }
 
-function bundleDishMissingChoice(dishId) {
+function toggleBundleDish(dishId) {
+  // Kept for backward compatibility; now just increments
+  incrementBundleDish(dishId);
+}
+
+function setBundleDishChoice(slotIndex, key, value) {
+  choices["w1_dish_" + slotIndex + (key ? "_" + key : "")] = value;
+  refreshItem("w1");
+  updateSummary();
+}
+
+function bundleDishMissingChoice(slotIndex, dishId) {
   const dish = BUNDLE_DISHES.find(d => d.id === dishId);
   if (!dish || !dish.subChoice) return false;
-  const base = "w1_dish_" + dishId;
+  const base = "w1_dish_" + slotIndex;
   if (dish.subChoice === "sauce_persian_moroccan") return !choices[base];
   if (dish.subChoice === "beyond_choice") return !choices[base];
   if (dish.subChoice === "pad_kapao") return !choices[base] || !choices[base + "_egg"];
@@ -1050,11 +1128,15 @@ function bundleDishMissingChoice(dishId) {
   return false;
 }
 
+function bundleAllSlotsMissingChoice() {
+  return getBundleDishes().some((dishId, idx) => bundleDishMissingChoice(idx, dishId));
+}
+
 function bundleBeyondCount() {
-  return getBundleDishes().filter(dishId => {
+  return getBundleDishes().filter((dishId, idx) => {
     const dish = BUNDLE_DISHES.find(d => d.id === dishId);
     if (!dish) return false;
-    const base = "w1_dish_" + dishId;
+    const base = "w1_dish_" + idx;
     if (dish.subChoice === "beyond_choice" || dish.subChoice === "pad_kapao" || dish.subChoice === "veg_meatballs") {
       return choices[base] === "beyond";
     }
@@ -1062,10 +1144,10 @@ function bundleBeyondCount() {
   }).length;
 }
 
-function getBundleDishLabel(dishId) {
+function getBundleDishLabel(dishId, slotIndex) {
   const dish = BUNDLE_DISHES.find(d => d.id === dishId);
   if (!dish) return "";
-  const base = "w1_dish_" + dishId;
+  const base = "w1_dish_" + slotIndex;
   let label = dish.name;
   if (dish.subChoice === "sauce_persian_moroccan") {
     const v = choices[base];
@@ -1131,9 +1213,9 @@ function calcItemCost(item) {
       const price = totalJars >= 4 ? 20 : 22;
       return price * qty;
     }
-    // Weekly bundle: +10₪ for every dish chosen with Beyond
+    // Weekly bundle: item.price per unit, +10₪ for every dish chosen with Beyond (across all units)
     if (item.id === "w1") {
-      return (item.price + bundleBeyondCount() * 10) * qty;
+      return item.price * qty + bundleBeyondCount() * 10;
     }
     return item.price * qty;
   }
@@ -1230,7 +1312,7 @@ function updateSummary() {
       return `<div class="order-line" style="${isError ? 'color:var(--red-text)' : ''}">
         <span>${isError ? '⚠️ ' : ''}${item.name}${choiceLabel}${jarNote} (${qty} ${unit})</span>
         <span>${cost} ₪</span>
-      </div>${item.id === 'w1' && getBundleDishes().length ? `<div style="font-size:11px;color:var(--text3);padding:0 0 4px 0;">${getBundleDishes().map(d => '• ' + getBundleDishLabel(d)).join('<br>')}</div>` : ''}`;
+      </div>${item.id === 'w1' && getBundleDishes().length ? `<div style="font-size:11px;color:var(--text3);padding:0 0 4px 0;">${getBundleDishes().map((d, idx) => '• ' + getBundleDishLabel(d, idx)).join('<br>')}</div>` : ''}`;
     }).join("");
   }
 
@@ -1281,6 +1363,19 @@ function sendOrder() {
     return;
   }
 
+  // If delivery chosen, address is required
+  if (deliveryMode === "delivery") {
+    const addressInput = document.getElementById("address-input");
+    const address = addressInput.value.trim();
+    if (!address) {
+      addressInput.classList.add("error");
+      addressInput.focus();
+      showToast("אנא הכנס כתובת למשלוח לפני שליחת ההזמנה");
+      setTimeout(() => addressInput.classList.remove("error"), 2000);
+      return;
+    }
+  }
+
   // Check minimums
   let errorItems = [];
   menu.forEach(sec => {
@@ -1303,8 +1398,8 @@ function sendOrder() {
   const missingChoice = selected.find(i => {
     if (!i.checkbox) {
       if (i.weeklyDetails) {
-        if (getBundleDishes().length !== 4) return true;
-        if (getBundleDishes().some(d => bundleDishMissingChoice(d))) return true;
+        if (getBundleDishes().length !== getBundleMaxDishes()) return true;
+        if (bundleAllSlotsMissingChoice()) return true;
       }
       return false;
     }
@@ -1316,10 +1411,11 @@ function sendOrder() {
   if (missingChoice) {
     if (missingChoice.weeklyDetails) {
       const bundleCount = getBundleDishes().length;
-      if (bundleCount < 4) {
-        showToast(`⚠️ יש לבחור עוד ${4 - bundleCount} מנות במארז השבועי`);
-      } else if (bundleCount > 4) {
-        showToast("⚠️ ניתן לבחור עד 4 מנות במארז השבועי");
+      const maxDishes = getBundleMaxDishes();
+      if (bundleCount < maxDishes) {
+        showToast(`⚠️ יש לבחור עוד ${maxDishes - bundleCount} מנות במארז השבועי`);
+      } else if (bundleCount > maxDishes) {
+        showToast(`⚠️ ניתן לבחור עד ${maxDishes} מנות במארז השבועי`);
       } else {
         showToast("⚠️ יש להשלים את כל הבחירות עבור מנות המארז השבועי");
       }
@@ -1353,8 +1449,8 @@ function sendOrder() {
       msg += `- ${item.name}${choiceLabel} – ${qty} ${unit} = ${cost} ₪\n`;
       // Weekly bundle sub-choices
       if (item.id === "w1") {
-        getBundleDishes().forEach(dishId => {
-          msg += `   • ${getBundleDishLabel(dishId)}\n`;
+        getBundleDishes().forEach((dishId, idx) => {
+          msg += `   • ${getBundleDishLabel(dishId, idx)}\n`;
         });
         msg += `   • תוספות (כלולות): מג'דרה, תפוחי אדמה בתנור\n`;
         msg += `   • סלט (כלול): כרוב לבן\n`;
