@@ -1368,8 +1368,15 @@ function sendOrder() {
     const addressInput = document.getElementById("address-input");
     const address = addressInput.value.trim();
     if (!address) {
+      // Make sure the summary panel (which contains the address field) is open and visible
+      if (!summaryOpen) {
+        summaryOpen = true;
+        document.getElementById("summary-panel").classList.add("open");
+        document.getElementById("strip-toggle").textContent = "סגור ▼";
+      }
       addressInput.classList.add("error");
-      addressInput.focus();
+      addressInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => addressInput.focus(), 300);
       showToast("אנא הכנס כתובת למשלוח לפני שליחת ההזמנה");
       setTimeout(() => addressInput.classList.remove("error"), 2000);
       return;
