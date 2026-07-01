@@ -404,6 +404,7 @@ function card(o) {
 function parseBulletItems(lines, startIdx) {
   // Parse bullet lines (starting with •) after a מארז line
   // Returns { mainDishes: [...], sides: [...], salads: [...] }
+  // Each entry is the FULL dish name including sauce/choice (e.g. "קציצות עוף – ברוטב מרוקאי")
   var mainDishes = [], sides = [], salads = [];
   var mode = 'main'; // main, sides, salads
   for (var i = startIdx; i < lines.length; i++) {
@@ -418,7 +419,7 @@ function parseBulletItems(lines, startIdx) {
     if (sidesMatch) {
       mode = 'sides';
       sidesMatch[1].split(',').forEach(function(item) {
-        var name = item.trim().split(/\s*[–-]\s*/)[0].trim();
+        var name = item.trim();
         if (name) sides.push(name);
       });
       continue;
@@ -429,7 +430,7 @@ function parseBulletItems(lines, startIdx) {
     if (saladMatch) {
       mode = 'salads';
       saladMatch[1].split(',').forEach(function(item) {
-        var name = item.trim().split(/\s*[–-]\s*/)[0].trim();
+        var name = item.trim();
         if (name) salads.push(name);
       });
       continue;
@@ -439,17 +440,50 @@ function parseBulletItems(lines, startIdx) {
     if (text.match(/^תוספו?ת/)) { mode = 'sides'; continue; }
     if (text.match(/^סלט/))     { mode = 'salads'; continue; }
 
-    // Regular bullet — could be comma-separated too
-    var items = text.split(',');
-    items.forEach(function(item) {
-      var dishName = item.trim().split(/\s*[–-]\s*/)[0].trim();
-      if (!dishName) return;
-      if (mode === 'salads') salads.push(dishName);
-      else if (mode === 'sides') sides.push(dishName);
-      else mainDishes.push(dishName);
-    });
+    // Regular bullet — keep full name including choice (e.g. "קציצות עוף – ברוטב מרוקאי")
+    var dishName = text.trim();
+    if (!dishName) return;
+    if (mode === 'salads') salads.push(dishName);
+    else if (mode === 'sides') sides.push(dishName);
+    else mainDishes.push(dishName);
   }
   return { mainDishes: mainDishes, sides: sides, salads: salads };
+}
+
+// ── CATEGORY HELPERS ──────────────────────────────────────────────────────────
+var CAT_ORDER = ['main', 'sides', 'salads', 'condiments', 'other'];
+var CAT_LABELS = {
+  main:       '🍗 מנות עיקריות',
+  sides:      '🍚 תוספות',
+  salads:     '🥗 סלטים וממרחים',
+  condiments: '🫙 מטבלים בצנצנת',
+  other:      '📦 אחר'
+};
+
+// Section header keywords → category key
+var SECTION_MAP = [
+  { re: /מנות עיקריות/,    cat: 'main'       },
+  { re: /תוספות/,          cat: 'sides'      },
+  { re: /סלטים|ממרחים/,    cat: 'salads'     },
+  { re: /מטבלים|צנצנת/,    cat: 'condiments' },
+  { re: /מארז/,            cat: 'main'       }  // מארז items split into their own cats inside
+];
+
+function detectSectionCat(line) {
+  for (var si = 0; si < SECTION_MAP.length; si++) {
+    if (SECTION_MAP[si].re.test(line)) return SECTION_MAP[si].cat;
+  }
+  return null;
+}
+
+// Parse the full dish name from a regular item line, preserving choice/sauce suffix
+// e.g. "קציצות עוף – ברוטב פרסי – 1100 גרם = 93.5 ₪" → "קציצות עוף – ברוטב פרסי"
+function parseItemName(line) {
+  // Pattern: NAME [– CHOICE] – QTY גרם/יח' [= PRICE ₪] [- extra]
+  // We want everything before the last "– NUMBER גרם/יח'"
+  var m = line.match(/^(.*?)\s*[–-]\s*\d+\s*(גרם|יח')/);
+  if (m) return m[1].trim();
+  return line.trim();
 }
 
 function itemTotals() {
@@ -457,38 +491,66 @@ function itemTotals() {
   orders.forEach(function(o) {
     var lines = (o.items||'').split('\n');
     var i = 0;
+    var currentCat = 'main'; // default
     while (i < lines.length) {
       var line = lines[i].trim();
 
+      // ── Section header (e.g. "מנות עיקריות", "תוספות") ──
+      // These lines have no dash-number pattern, just a title
+      if (!line.startsWith('-') && !line.startsWith('\u2022') && !line.startsWith('•')) {
+        var detectedCat = detectSectionCat(line);
+        if (detectedCat) { currentCat = detectedCat; i++; continue; }
+      }
+
       // ── מארז: detect "מארז ... – N יח' = ..." ──
-      var mararMatch = line.match(/^מארז.+?[–-]\s*(\d+)\s*יח'/);
+      var mararMatch = line.match(/^-?\s*מארז.+?[–-]\s*(\d+)\s*יח'/);
       if (mararMatch) {
         var qty = parseInt(mararMatch[1]);
         // Parse the bullet sub-items on following lines
         var parsed = parseBulletItems(lines, i + 1);
-        parsed.mainDishes.forEach(function(name) { add(tot, name, qty * 400, 'גרם'); });
-        parsed.sides.forEach(function(name)      { add(tot, name, qty * 400, 'גרם'); });
-        parsed.salads.forEach(function(name)     { add(tot, name, qty * 250, 'גרם'); });
+        parsed.mainDishes.forEach(function(name) { add(tot, name, qty * 400, 'גרם', 'main'); });
+        parsed.sides.forEach(function(name)      { add(tot, name, qty * 400, 'גרם', 'sides'); });
+        parsed.salads.forEach(function(name)     { add(tot, name, qty * 250, 'גרם', 'salads'); });
         i++;
         // Skip bullet lines that were parsed
         while (i < lines.length && (lines[i].trim().startsWith('\u2022') || lines[i].trim().startsWith('•'))) i++;
         continue;
       }
 
-      // ── Regular item lines ──
-      line = line.replace(/^-\s*/, '');
-      // Skip מארז header lines — already handled above
-      if (line.match(/^מארז.+יח'/)) { i++; continue; }
-      if (line) {
-        var m;
-        m = line.match(/^(.+?)\s*[-\u2013]\s*(\d+)\s*(גרם|יח')\s*=\s*[\d.]+\s*₪/);
-        if (m) { add(tot, m[1].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[2]), m[3]); i++; continue; }
-        m = line.match(/^(\d+)\s*(גרם|יח')\s+(.+?)(?:\s*[-\u2013]\s*[\d.]+)?$/);
-        if (m) { add(tot, m[3].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[1]), m[2]); i++; continue; }
-        m = line.match(/^(.+?)\s*[-\u2013]\s*(\d+)\s*(גרם|יח')/);
-        if (m) { add(tot, m[1].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[2]), m[3]); i++; continue; }
-        m = line.match(/(\d+)\s*(גרם|יח')/);
-        if (m) { add(tot, line.replace(/\d+\s*(גרם|יח').*/, '').replace(/[-\u2013=]/g,'').trim()||line, parseInt(m[1]), m[2]); i++; continue; }
+      // ── Regular item lines (start with "- ") ──
+      var cleanLine = line.replace(/^-\s*/, '');
+      // Skip bare מארז header lines (already handled above)
+      if (cleanLine.match(/^מארז.+יח'/)) { i++; continue; }
+      if (cleanLine) {
+        var qty2, unit2, name2;
+        // Format: NAME [– CHOICE] – QTY גרם/יח' = PRICE ₪ [- extra]
+        var m2 = cleanLine.match(/^(.*?)\s*[–-]\s*(\d+)\s*(גרם|יח')\s*=\s*[\d.]+/);
+        if (m2) {
+          name2 = m2[1].trim();
+          qty2  = parseInt(m2[2]);
+          unit2 = m2[3];
+          add(tot, name2, qty2, unit2, currentCat);
+          i++; continue;
+        }
+        // Format: QTY גרם/יח' NAME
+        var m3 = cleanLine.match(/^(\d+)\s*(גרם|יח')\s+(.+?)(?:\s*[–-]\s*[\d.]+)?$/);
+        if (m3) {
+          add(tot, m3[3].trim(), parseInt(m3[1]), m3[2], currentCat);
+          i++; continue;
+        }
+        // Format: NAME – QTY גרם/יח'
+        var m4 = cleanLine.match(/^(.*?)\s*[–-]\s*(\d+)\s*(גרם|יח')/);
+        if (m4) {
+          add(tot, m4[1].trim(), parseInt(m4[2]), m4[3], currentCat);
+          i++; continue;
+        }
+        // Fallback: any number + unit
+        var m5 = cleanLine.match(/(\d+)\s*(גרם|יח')/);
+        if (m5) {
+          var fb = cleanLine.replace(/\d+\s*(גרם|יח').*/, '').replace(/[–\-=]/g,'').trim() || cleanLine;
+          add(tot, fb, parseInt(m5[1]), m5[2], currentCat);
+          i++; continue;
+        }
       }
       i++;
     }
@@ -496,9 +558,10 @@ function itemTotals() {
   return tot;
 }
 
-function add(tot, name, qty, unit) {
-  var key = name+'__'+unit;
-  if (!tot[key]) tot[key] = { name:name, unit:unit, qty:0 };
+function add(tot, name, qty, unit, cat) {
+  cat = cat || 'other';
+  var key = cat + '__' + name + '__' + unit;
+  if (!tot[key]) tot[key] = { name:name, unit:unit, qty:0, cat:cat };
   tot[key].qty += qty;
 }
 
@@ -573,27 +636,54 @@ function saveItemNote(k) {
 }
 
 function renderTotItems(tot, keys) {
-  return keys.map(function(k) {
-    var item = tot[k];
-    var sk   = safeKey(k);
-    var st   = itemStates[sk] || {};
-    return '<div class="item-row">'
-      + '<div class="item-top">'
-      + '<input type="checkbox" id="icb-'+sk+'" '+(st.done?'checked':'')+' onclick="toggleItemDone(\''+sk+'\')"> '
-      + '<span class="item-name'+(st.done?' done-item':'')+'" id="iname-'+sk+'">'+esc(item.name)+'</span>'
-      + '<span class="item-qty">'+fmtQty(item.qty,item.unit)+'</span>'
-      + '</div>'
-      + '<textarea class="item-note" id="inote-'+sk+'" rows="1" placeholder="הערה..." onchange="saveItemNote(\''+sk+'\')">'+esc(st.note||'')+'</textarea>'
-      + '</div>';
-  }).join('');
+  // Group keys by category
+  var byCat = {};
+  CAT_ORDER.forEach(function(c) { byCat[c] = []; });
+  keys.forEach(function(k) {
+    var cat = tot[k].cat || 'other';
+    if (!byCat[cat]) byCat[cat] = [];
+    byCat[cat].push(k);
+  });
+
+  var html = '';
+  CAT_ORDER.forEach(function(cat) {
+    var catKeys = byCat[cat];
+    if (!catKeys || !catKeys.length) return;
+    // Sort alphabetically within category
+    catKeys.sort(function(a,b){ return tot[a].name.localeCompare(tot[b].name,'he'); });
+    html += '<div style="font-size:12px;font-weight:700;color:var(--gold-dark);background:var(--bg3);padding:6px 10px;border-radius:8px;margin:10px 0 6px;">'
+          + CAT_LABELS[cat] + '</div>';
+    catKeys.forEach(function(k) {
+      var item = tot[k];
+      var sk   = safeKey(k);
+      var st   = itemStates[sk] || {};
+      html += '<div class="item-row">'
+        + '<div class="item-top">'
+        + '<input type="checkbox" id="icb-'+sk+'" '+(st.done?'checked':'')+' onclick="toggleItemDone(\''+sk+'\')"> '
+        + '<span class="item-name'+(st.done?' done-item':'')+'" id="iname-'+sk+'">'+esc(item.name)+'</span>'
+        + '<span class="item-qty">'+fmtQty(item.qty,item.unit)+'</span>'
+        + '</div>'
+        + '<textarea class="item-note" id="inote-'+sk+'" rows="1" placeholder="הערה..." onchange="saveItemNote(\''+sk+'\')">'+esc(st.note||'')+'</textarea>'
+        + '</div>';
+    });
+  });
+  return html;
 }
 
 function sendWaTotals() {
   var tot  = itemTotals();
-  var keys = Object.keys(tot).sort(function(a,b){ return tot[a].name.localeCompare(tot[b].name,'he'); });
   var msg  = '\u{1F4CA} *סיכום כמויות \u2013 ביס של בית*\n\n';
-  if (keys.length) keys.forEach(function(k){ msg+='\u2022 '+tot[k].name+': *'+fmtQty(tot[k].qty,tot[k].unit)+'*\n'; });
-  else msg+='(לא ניתן לנתח פריטים)\n';
+  var hasAny = false;
+  CAT_ORDER.forEach(function(cat) {
+    var catKeys = Object.keys(tot).filter(function(k){ return tot[k].cat === cat; });
+    if (!catKeys.length) return;
+    catKeys.sort(function(a,b){ return tot[a].name.localeCompare(tot[b].name,'he'); });
+    msg += '*' + CAT_LABELS[cat] + '*\n';
+    catKeys.forEach(function(k){ msg+='\u2022 '+tot[k].name+': *'+fmtQty(tot[k].qty,tot[k].unit)+'*\n'; });
+    msg += '\n';
+    hasAny = true;
+  });
+  if (!hasAny) msg+='(לא ניתן לנתח פריטים)\n';
   msg+='\nסה"כ '+orders.length+' הזמנות';
   window.open(waLink(msg),'_blank');
 }
@@ -653,7 +743,7 @@ function render() {
       return '<div class="sec-lbl" style="color:var(--gold-dark);background:var(--gold-light);">📅 '+day+' ('+g.byDay[day].length+')</div>'+g.byDay[day].map(card).join('');
     }).join('');
   }
-  var tot=itemTotals(), keys=Object.keys(tot).sort(function(a,b){ return tot[a].name.localeCompare(tot[b].name,'he'); }), ti=document.getElementById('tot-items');
+  var tot=itemTotals(), keys=Object.keys(tot), ti=document.getElementById('tot-items');
   if (!orders.length) ti.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">אין הזמנות</div>';
   else if (!keys.length) ti.innerHTML='<div style="color:var(--text3);font-size:12px;">לא ניתן לנתח פריטים</div>';
   else ti.innerHTML=renderTotItems(tot, keys);
