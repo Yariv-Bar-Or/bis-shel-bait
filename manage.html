@@ -356,23 +356,95 @@ function card(o) {
     + '</div>';
 }
 
+function parseBulletItems(lines, startIdx) {
+  // Parse bullet lines (starting with •) after a מארז line
+  // Returns { mainDishes: [...], sides: [...], salads: [...] }
+  var mainDishes = [], sides = [], salads = [];
+  var mode = 'main'; // main, sides, salads
+  for (var i = startIdx; i < lines.length; i++) {
+    var l = lines[i].trim();
+    if (!l) continue;
+    // Stop if we hit a new top-level line (not a bullet)
+    if (!l.startsWith('\u2022') && !l.startsWith('•')) break;
+    var text = l.replace(/^[\u2022•]\s*/, '').trim();
+
+    // Detect "תוספות (כלולות): item1, item2" — header + comma-separated items on same line
+    var sidesMatch = text.match(/^תוספו?ת[^:]*:\s*(.+)/);
+    if (sidesMatch) {
+      mode = 'sides';
+      sidesMatch[1].split(',').forEach(function(item) {
+        var name = item.trim().split(/\s*[–-]\s*/)[0].trim();
+        if (name) sides.push(name);
+      });
+      continue;
+    }
+
+    // Detect "סלט (כלול): item1, item2"
+    var saladMatch = text.match(/^סלט[^:]*:\s*(.+)/);
+    if (saladMatch) {
+      mode = 'salads';
+      saladMatch[1].split(',').forEach(function(item) {
+        var name = item.trim().split(/\s*[–-]\s*/)[0].trim();
+        if (name) salads.push(name);
+      });
+      continue;
+    }
+
+    // Plain section headers without items on same line
+    if (text.match(/^תוספו?ת/)) { mode = 'sides'; continue; }
+    if (text.match(/^סלט/))     { mode = 'salads'; continue; }
+
+    // Regular bullet — could be comma-separated too
+    var items = text.split(',');
+    items.forEach(function(item) {
+      var dishName = item.trim().split(/\s*[–-]\s*/)[0].trim();
+      if (!dishName) return;
+      if (mode === 'salads') salads.push(dishName);
+      else if (mode === 'sides') sides.push(dishName);
+      else mainDishes.push(dishName);
+    });
+  }
+  return { mainDishes: mainDishes, sides: sides, salads: salads };
+}
+
 function itemTotals() {
   var tot = {};
   orders.forEach(function(o) {
     var lines = (o.items||'').split('\n');
-    lines.forEach(function(line) {
-      line = line.trim().replace(/^-\s*/,'');
-      if (!line) return;
-      var m;
-      m = line.match(/^(.+?)\s*[-\u2013]\s*(\d+)\s*(גרם|יח')\s*=\s*[\d.]+\s*₪/);
-      if (m) { add(tot, m[1].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[2]), m[3]); return; }
-      m = line.match(/^(\d+)\s*(גרם|יח')\s+(.+?)(?:\s*[-\u2013]\s*[\d.]+)?$/);
-      if (m) { add(tot, m[3].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[1]), m[2]); return; }
-      m = line.match(/^(.+?)\s*[-\u2013]\s*(\d+)\s*(גרם|יח')/);
-      if (m) { add(tot, m[1].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[2]), m[3]); return; }
-      m = line.match(/(\d+)\s*(גרם|יח')/);
-      if (m) { add(tot, line.replace(/\d+\s*(גרם|יח').*/, '').replace(/[-\u2013=]/g,'').trim()||line, parseInt(m[1]), m[2]); }
-    });
+    var i = 0;
+    while (i < lines.length) {
+      var line = lines[i].trim();
+
+      // ── מארז: detect "מארז ... – N יח' = ..." ──
+      var mararMatch = line.match(/^מארז.+?[–-]\s*(\d+)\s*יח'/);
+      if (mararMatch) {
+        var qty = parseInt(mararMatch[1]);
+        // Parse the bullet sub-items on following lines
+        var parsed = parseBulletItems(lines, i + 1);
+        parsed.mainDishes.forEach(function(name) { add(tot, name, qty * 400, 'גרם'); });
+        parsed.sides.forEach(function(name)      { add(tot, name, qty * 400, 'גרם'); });
+        parsed.salads.forEach(function(name)     { add(tot, name, qty * 250, 'גרם'); });
+        i++;
+        // Skip bullet lines that were parsed
+        while (i < lines.length && (lines[i].trim().startsWith('\u2022') || lines[i].trim().startsWith('•'))) i++;
+        continue;
+      }
+
+      // ── Regular item lines ──
+      line = line.replace(/^-\s*/, '');
+      if (line) {
+        var m;
+        m = line.match(/^(.+?)\s*[-\u2013]\s*(\d+)\s*(גרם|יח')\s*=\s*[\d.]+\s*₪/);
+        if (m) { add(tot, m[1].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[2]), m[3]); i++; continue; }
+        m = line.match(/^(\d+)\s*(גרם|יח')\s+(.+?)(?:\s*[-\u2013]\s*[\d.]+)?$/);
+        if (m) { add(tot, m[3].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[1]), m[2]); i++; continue; }
+        m = line.match(/^(.+?)\s*[-\u2013]\s*(\d+)\s*(גרם|יח')/);
+        if (m) { add(tot, m[1].trim().split(/\s*[-\u2013]\s*/)[0].trim(), parseInt(m[2]), m[3]); i++; continue; }
+        m = line.match(/(\d+)\s*(גרם|יח')/);
+        if (m) { add(tot, line.replace(/\d+\s*(גרם|יח').*/, '').replace(/[-\u2013=]/g,'').trim()||line, parseInt(m[1]), m[2]); i++; continue; }
+      }
+      i++;
+    }
   });
   return tot;
 }
