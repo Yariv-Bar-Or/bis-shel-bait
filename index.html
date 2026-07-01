@@ -692,12 +692,12 @@ const menu = [
     minGrams: 0,
     minLabel: "22 ₪ לצנצנת (כ-150 גרם) | 4 צנצנות ומעלה – 20 ₪ ליחידה",
     items: [
-      { id: "c1", name: "ריבת פלפל חריף",                      price: 22, fixed: true, veg: true, vegan: true },
-      { id: "c2", name: "ארטישוק קונפי עם פרמז'ן",              price: 22, fixed: true, veg: true },
-      { id: "c3", name: "חמאת שום, עשבי תיבול ופרמז'ן",        price: 22, fixed: true, veg: true, outOfStock: true },
-      { id: "c4", name: "לימון כבוש",                           price: 22, fixed: true, veg: true, vegan: true, outOfStock: true },
-      { id: "c5", name: "כדורי לאבנה",                          price: 22, fixed: true, veg: true, outOfStock: true },
-      { id: "c6", name: "סקורדליה – מטבל יווני",               price: 22, fixed: true, veg: true, vegan: true, outOfStock: true }
+      { id: "c1", name: "ריבת פלפל חריף",                      price: 22, fixed: true, veg: true, vegan: true, available: true },
+      { id: "c2", name: "ארטישוק קונפי עם פרמז'ן",              price: 22, fixed: true, veg: true, available: false },
+      { id: "c3", name: "חמאת שום, עשבי תיבול ופרמז'ן",        price: 22, fixed: true, veg: true, available: false },
+      { id: "c4", name: "לימון כבוש",                           price: 22, fixed: true, veg: true, vegan: true, available: false },
+      { id: "c5", name: "כדורי לאבנה",                          price: 22, fixed: true, veg: true, available: false },
+      { id: "c6", name: "סקורדליה – מטבל יווני",               price: 22, fixed: true, veg: true, vegan: true, available: false }
     ]
   }
 ];
@@ -774,7 +774,7 @@ function renderAll() {
     secDiv.appendChild(minNote);
 
     section.items.forEach(item => {
-      // Skip main dishes marked as unavailable this week
+      // Skip items marked as unavailable this week
       if (item.available === false) return;
       secDiv.appendChild(buildItemEl(item, section));
     });
