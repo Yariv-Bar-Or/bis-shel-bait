@@ -236,9 +236,14 @@ function checkDone(id) {
   var card = document.getElementById('card-'+id);
   if (card) card.classList.add('done-fade');
   var name = o.name;
+  // Mark as being deleted to prevent re-render conflicts
+  o._deleting = true;
   setTimeout(function(){
     deleteOrderDB(id).then(function(){
       toast('🎉 הזמנת '+name+' הושלמה ונמחקה');
+    }).catch(function(){
+      o._deleting = false;
+      toast('שגיאה במחיקה');
     });
   }, 380);
 }
@@ -274,12 +279,32 @@ function saveDT(id) {
   var o = orders.find(function(x){ return x.id===id; });
   if (!o) return;
   o.datetime = val || null;
-  updateOrder(id, { datetime: o.datetime }).then(function(){ toast('📅 תאריך ושעה עודכנו'); render(); });
+  updateOrder(id, { datetime: o.datetime }).then(function(){
+    toast('📅 תאריך ושעה עודכנו');
+    render();
+  }).catch(function(e){
+    toast('שגיאה בשמירת תאריך');
+    console.log('saveDT error:', e);
+  });
 }
 
 function delOrder(id) {
-  if (!confirm('למחוק הזמנה זו?')) return;
+  var card = document.getElementById('card-'+id);
+  if (!card) return;
+  var actions = card.querySelector('.card-actions');
+  if (!actions) return;
+  var orig = actions.innerHTML;
+  actions.innerHTML = '<span style="font-size:12px;color:var(--red-text);font-weight:600;">בטוח למחוק?</span>'
+    + '<button class="btn-sm red" onclick="confirmDel('+id+')">✔ כן</button>'
+    + '<button class="btn-sm" onclick="cancelDel('+id+',this)">✖ לא</button>';
+  actions._orig = orig;
+}
+function confirmDel(id) {
   deleteOrderDB(id).then(function(){ toast('🗑️ נמחק'); });
+}
+function cancelDel(id, btn) {
+  var actions = btn.closest('.card-actions');
+  if (actions && actions._orig) actions.innerHTML = actions._orig;
 }
 
 function parseOrder() {
@@ -290,20 +315,25 @@ function parseOrder() {
   var totalM = raw.match(/סה"כ:\s*([\d.,]+)/);
   var amount = totalM ? parseFloat(totalM[1].replace(',','.')) : 0;
   var isDel  = raw.includes('משלוח') && !raw.includes('איסוף עצמי');
-  // Keep lines starting with "- " (items) and "•" (מארז bullets)
-  // Also keep category headers like "מנות עיקריות", "תוספות", "מארז שבועי" that precede items
+  // Extract item lines: "- " lines, "•" bullets, and מארז header lines
   var allLines = raw.split('\n');
   var itemLines = [];
-  var inItems = false;
   for (var li = 0; li < allLines.length; li++) {
     var l = allLines[li].trim();
-    if (l.startsWith('- ') || l.startsWith('\u2022') || l.startsWith('•')) {
-      inItems = true;
+    // Regular item line
+    if (l.startsWith('- ')) {
       itemLines.push(l.replace(/^- /, ''));
-    } else if (inItems && (l.startsWith('\u2022') || l.startsWith('•'))) {
+      continue;
+    }
+    // Bullet line (מארז sub-items)
+    if (l.startsWith('\u2022') || l.startsWith('\u2023') || /^[•·]/.test(l)) {
       itemLines.push(l);
-    } else if (l === '') {
-      // keep blank lines to preserve structure
+      continue;
+    }
+    // מארז header line e.g. "מארז שבועי – 1 יח' = 180.0 ₪"
+    if (l.match(/^מארז.+יח'/)) {
+      itemLines.push('- ' + l);
+      continue;
     }
   }
   var items  = itemLines.join('\n');
@@ -447,6 +477,8 @@ function itemTotals() {
 
       // ── Regular item lines ──
       line = line.replace(/^-\s*/, '');
+      // Skip מארז header lines — already handled above
+      if (line.match(/^מארז.+יח'/)) { i++; continue; }
       if (line) {
         var m;
         m = line.match(/^(.+?)\s*[-\u2013]\s*(\d+)\s*(גרם|יח')\s*=\s*[\d.]+\s*₪/);
@@ -507,7 +539,11 @@ function safeKey(k) { return k.replace(/[^a-zA-Zא-ת0-9]/g, '_'); }
 function loadItemStates() {
   return sbFetch('item_notes?select=*').then(function(data) {
     itemStates = {};
-    (data||[]).forEach(function(row) { itemStates[row.key] = row; });
+    (data||[]).forEach(function(row) {
+      // Store by both raw key and safeKey to ensure lookup works
+      itemStates[row.key] = row;
+      itemStates[safeKey(row.key)] = row;
+    });
   }).catch(function(e) { console.log('item_notes load error:', e); });
 }
 
@@ -554,7 +590,7 @@ function renderTotItems(tot, keys) {
 
 function sendWaTotals() {
   var tot  = itemTotals();
-  var keys = Object.keys(tot).sort();
+  var keys = Object.keys(tot).sort(function(a,b){ return tot[a].name.localeCompare(tot[b].name,'he'); });
   var msg  = '\u{1F4CA} *סיכום כמויות \u2013 ביס של בית*\n\n';
   if (keys.length) keys.forEach(function(k){ msg+='\u2022 '+tot[k].name+': *'+fmtQty(tot[k].qty,tot[k].unit)+'*\n'; });
   else msg+='(לא ניתן לנתח פריטים)\n';
@@ -617,7 +653,7 @@ function render() {
       return '<div class="sec-lbl" style="color:var(--gold-dark);background:var(--gold-light);">📅 '+day+' ('+g.byDay[day].length+')</div>'+g.byDay[day].map(card).join('');
     }).join('');
   }
-  var tot=itemTotals(), keys=Object.keys(tot).sort(), ti=document.getElementById('tot-items');
+  var tot=itemTotals(), keys=Object.keys(tot).sort(function(a,b){ return tot[a].name.localeCompare(tot[b].name,'he'); }), ti=document.getElementById('tot-items');
   if (!orders.length) ti.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">אין הזמנות</div>';
   else if (!keys.length) ti.innerHTML='<div style="color:var(--text3);font-size:12px;">לא ניתן לנתח פריטים</div>';
   else ti.innerHTML=renderTotItems(tot, keys);
@@ -630,8 +666,25 @@ function render() {
 }
 
 function loadAll() {
-  return Promise.all([loadOrders(), loadItemStates()]).then(function() { render(); });
+  return Promise.all([loadOrders(), loadItemStates()]).then(function() {
+    render();
+  }).catch(function(e) {
+    var ol = document.getElementById('lst-orders');
+    if (ol && ol.innerHTML.includes('טוען')) {
+      ol.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>שגיאה בטעינה.<br>בדוק חיבור לאינטרנט ורענן.</div>';
+    }
+    console.log('loadAll error:', e);
+  });
 }
+
+// Timeout fallback — if still loading after 8 seconds show error
+setTimeout(function() {
+  var ol = document.getElementById('lst-orders');
+  if (ol && ol.innerHTML.includes('טוען')) {
+    ol.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>שגיאה בטעינה.<br>בדוק חיבור לאינטרנט ורענן.</div>';
+  }
+}, 8000);
+
 loadAll();
 setInterval(loadAll, 30000);
 </script>
