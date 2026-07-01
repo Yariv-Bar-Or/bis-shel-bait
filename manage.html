@@ -290,8 +290,23 @@ function parseOrder() {
   var totalM = raw.match(/סה"כ:\s*([\d.,]+)/);
   var amount = totalM ? parseFloat(totalM[1].replace(',','.')) : 0;
   var isDel  = raw.includes('משלוח') && !raw.includes('איסוף עצמי');
-  var lines  = raw.split('\n').filter(function(l){ return l.trim().startsWith('- '); });
-  var items  = lines.map(function(l){ return l.trim().replace(/^- /,''); }).join('\n');
+  // Keep lines starting with "- " (items) and "•" (מארז bullets)
+  // Also keep category headers like "מנות עיקריות", "תוספות", "מארז שבועי" that precede items
+  var allLines = raw.split('\n');
+  var itemLines = [];
+  var inItems = false;
+  for (var li = 0; li < allLines.length; li++) {
+    var l = allLines[li].trim();
+    if (l.startsWith('- ') || l.startsWith('\u2022') || l.startsWith('•')) {
+      inItems = true;
+      itemLines.push(l.replace(/^- /, ''));
+    } else if (inItems && (l.startsWith('\u2022') || l.startsWith('•'))) {
+      itemLines.push(l);
+    } else if (l === '') {
+      // keep blank lines to preserve structure
+    }
+  }
+  var items  = itemLines.join('\n');
   if (!name) { toast('לא נמצא שם בהודעה'); return; }
   var order = { id: Date.now(), name:name, items:items||raw.trim(), amount:amount,
                 delivery:isDel?'delivery':'pickup', datetime:null, paid:false, done:false, ts:Date.now() };
