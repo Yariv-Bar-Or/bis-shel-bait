@@ -614,16 +614,8 @@ const itemImages = {
 
 
 
-// Dishes selectable inside the weekly bundle (must match the 7 currently-available main dishes)
-const BUNDLE_DISHES = [
-  { id: "m7",  name: "קציצות עוף", subChoice: "sauce_persian_moroccan" },
-  { id: "m16", name: "פאד קפאו על מצע של אורז לבן", subChoice: "pad_kapao" },
-  { id: "m6",  name: "כנפיים ברוטב מתקתק-פיקנטי", subChoice: null },
-  { id: "m3",  name: "עוף בתנור עם תפוחי אדמה ובטטה", subChoice: null },
-  { id: "m9",  name: "פסטה בולונז", subChoice: "beyond_choice" },
-  { id: "m14", name: "פסטל יווני במילוי חצילים וגבינות", subChoice: null },
-  { id: "m7n", name: "קציצות צמחוניות/טבעוניות", subChoice: "veg_meatballs" }
-];
+// BUNDLE_DISHES is built dynamically from available main dishes — see buildBundleDishes() below
+let BUNDLE_DISHES = [];
 
 const menu = [
   {
@@ -641,25 +633,25 @@ const menu = [
     minGrams: 800,
     minLabel: "מינימום הזמנה לכל מנה: 800 גרם | מחיר ל-100 גרם",
     items: [
-      { id: "m1",  name: "מסחאן עוף מפורק עם שקדים קלויים על אורז לבן", price: 8.5, outOfStock: true, oosLabel: "לא זמין השבוע" },
-      { id: "m2",  name: "מסחאן עוף מפורק עם שקדים קלויים (ללא אורז)", price: 11, outOfStock: true, oosLabel: "לא זמין השבוע" },
-      { id: "m3",  name: "עוף בתנור עם תפוחי אדמה ובטטה", price: 7.5 },
-      { id: "m4",  name: "עוף ברוטב פרסי", price: 8, outOfStock: true, oosLabel: "לא זמין השבוע" },
-      { id: "m5a", name: "קוסקוס עם עוף וירקות", price: 8, note: "המשקל מחושב לפי המרק, בנוסף מגיע עם תוספת של 50% קוסקוס", outOfStock: true, oosLabel: "לא זמין השבוע" },
-      { id: "m5b", name: "קוסקוס ירקות (ללא עוף)", price: 7.5, veg: true, vegan: true, note: "המשקל מחושב לפי המרק, בנוסף מגיע עם תוספת של 50% קוסקוס", outOfStock: true, oosLabel: "לא זמין השבוע" },
-      { id: "m6",  name: "כנפיים ברוטב מתקתק-פיקנטי", price: 7 },
-      { id: "m7",  name: "קציצות עוף", price: 8.5, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי | 800 גרם – כ־20-24 קציצות" },
-      { id: "m7n", name: "קציצות צמחוניות/טבעוניות", price: 8.5, veg: true, vegan: true, checkbox: "veg_meatballs", note: "לבחור: טופו / ביונד (+10 ₪) | טבעוני / צמחוני | רוטב: פרסי / מרוקאי | 800 גרם – כ־20-24 קציצות" },
-      { id: "m8",  name: "בורקס בשר עם צנוברים", price: 9, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+10 ₪) = טבעוני", checkbox: "beyond_choice", outOfStock: true, oosLabel: "לא זמין השבוע" },
-      { id: "m9",  name: "פסטה בולונז", price: 6.5, veganOption: "beyond", note: "ניתן עם ביונד (+10 ₪) = טבעוני", checkbox: "beyond_choice" },
-      { id: "m10", name: "פאי רועים", price: 8.5, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+10 ₪) = טבעוני", checkbox: "beyond_choice_with_potato", outOfStock: true, oosLabel: "לא זמין השבוע" },
-      { id: "m11", name: "דג מרוקאי", price: 7.5, outOfStock: true, oosLabel: "לא זמין השבוע" },
-      { id: "m12", name: "קציצות דג", price: 9, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי | 800 גרם – כ־20-24 קציצות", outOfStock: true, oosLabel: "לא זמין השבוע" },
-      { id: "m13", name: "דג סלמון בחמאת עגבניות ויין לבן", price: 15, outOfStock: true, oosLabel: "לא זמין השבוע" },
-      { id: "m14", name: "פסטל יווני במילוי חצילים וגבינות", price: 8, veg: true },
-      { id: "m15", name: "מוקפץ תאילנדי", price: 7, checkbox: "thai_protein", note: "לבחור: עוף / טופו (טבעוני)", outOfStock: true, oosLabel: "לא זמין השבוע" },
-      { id: "m16", name: "פאד קפאו על מצע של אורז לבן", price: 8, veganOption: "beyond", checkbox: "pad_kapao", note: "לבחור: ביצת עין / ביצת עין הפוכה | ניתן עם ביונד (+10 ₪) = טבעוני" },
-      { id: "m17", name: "שניצל של בית", price: 9.5, note: "800 גרם – כ־20 שניצלים", outOfStock: true, oosLabel: "לא זמין השבוע" }
+      { id: "m1",  name: "מסחאן עוף מפורק עם שקדים קלויים על אורז לבן", price: 8.5, available: false },
+      { id: "m2",  name: "מסחאן עוף מפורק עם שקדים קלויים (ללא אורז)", price: 11, available: false },
+      { id: "m3",  name: "עוף בתנור עם תפוחי אדמה ובטטה", price: 7.5, available: true },
+      { id: "m4",  name: "עוף ברוטב פרסי", price: 8, available: false },
+      { id: "m5a", name: "קוסקוס עם עוף וירקות", price: 8, note: "המשקל מחושב לפי המרק, בנוסף מגיע עם תוספת של 50% קוסקוס", available: false },
+      { id: "m5b", name: "קוסקוס ירקות (ללא עוף)", price: 7.5, veg: true, vegan: true, note: "המשקל מחושב לפי המרק, בנוסף מגיע עם תוספת של 50% קוסקוס", available: false },
+      { id: "m6",  name: "כנפיים ברוטב מתקתק-פיקנטי", price: 7, available: true },
+      { id: "m7",  name: "קציצות עוף", price: 8.5, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי | 800 גרם – כ־20-24 קציצות", available: true },
+      { id: "m7n", name: "קציצות צמחוניות/טבעוניות", price: 8.5, veg: true, vegan: true, checkbox: "veg_meatballs", note: "לבחור: טופו / ביונד (+10 ₪) | טבעוני / צמחוני | רוטב: פרסי / מרוקאי | 800 גרם – כ־20-24 קציצות", available: true },
+      { id: "m8",  name: "בורקס בשר עם צנוברים", price: 9, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+10 ₪) = טבעוני", checkbox: "beyond_choice", available: false },
+      { id: "m9",  name: "פסטה בולונז", price: 6.5, veganOption: "beyond", note: "ניתן עם ביונד (+10 ₪) = טבעוני", checkbox: "beyond_choice", available: true },
+      { id: "m10", name: "פאי רועים", price: 8.5, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+10 ₪) = טבעוני", checkbox: "beyond_choice_with_potato", available: false },
+      { id: "m11", name: "דג מרוקאי", price: 7.5, available: false },
+      { id: "m12", name: "קציצות דג", price: 9, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי | 800 גרם – כ־20-24 קציצות", available: false },
+      { id: "m13", name: "דג סלמון בחמאת עגבניות ויין לבן", price: 15, available: false },
+      { id: "m14", name: "פסטל יווני במילוי חצילים וגבינות", price: 8, veg: true, available: true },
+      { id: "m15", name: "מוקפץ תאילנדי", price: 7, checkbox: "thai_protein", note: "לבחור: עוף / טופו (טבעוני)", available: false },
+      { id: "m16", name: "פאד קפאו על מצע של אורז לבן", price: 8, veganOption: "beyond", checkbox: "pad_kapao", note: "לבחור: ביצת עין / ביצת עין הפוכה | ניתן עם ביונד (+10 ₪) = טבעוני", available: true },
+      { id: "m17", name: "שניצל של בית", price: 9.5, note: "800 גרם – כ־20 שניצלים", available: false }
     ]
   },
   {
@@ -722,6 +714,28 @@ const quantities = {};
 const choices = {}; // { itemId: "persian" | "moroccan" | "beyond" | "regular" }
 let deliveryMode = null;
 
+// Maps a main-dish checkbox type to its bundle subChoice equivalent
+const CHECKBOX_TO_SUBCHOICE = {
+  "sauce_persian_moroccan":   "sauce_persian_moroccan",
+  "beyond_choice":            "beyond_choice",
+  "beyond_choice_with_potato":"beyond_choice_with_potato",
+  "pad_kapao":                "pad_kapao",
+  "thai_protein":             "thai_protein",
+  "veg_meatballs":            "veg_meatballs",
+};
+
+function buildBundleDishes() {
+  const mainSec = menu.find(s => s.id === "main");
+  if (!mainSec) return;
+  BUNDLE_DISHES = mainSec.items
+    .filter(item => item.available === true)
+    .map(item => ({
+      id: item.id,
+      name: item.name,
+      subChoice: CHECKBOX_TO_SUBCHOICE[item.checkbox] || null
+    }));
+}
+
 // ── RENDER ──────────────────────────────────────────────────────────────────
 
 function renderAll() {
@@ -760,6 +774,8 @@ function renderAll() {
     secDiv.appendChild(minNote);
 
     section.items.forEach(item => {
+      // Skip main dishes marked as unavailable this week
+      if (item.available === false) return;
       secDiv.appendChild(buildItemEl(item, section));
     });
 
@@ -784,7 +800,7 @@ function buildItemEl(item, section) {
   )) || weeklyChoiceNeeded;
 
   const div = document.createElement("div");
-  div.className = "item" + (hasQty ? " has-qty" : "") + (isError ? " error-state" : "") + (choiceNeeded ? " choice-error" : "") + (item.outOfStock ? " out-of-stock" : "");
+  div.className = "item" + (hasQty ? " has-qty" : "") + (isError ? " error-state" : "") + (choiceNeeded ? " choice-error" : "");
   div.id = "item-" + item.id;
 
   const priceLabel = isFixed ? item.price + " ₪ ליחידה" : item.price + " ₪ ל-100 גרם";
@@ -795,9 +811,6 @@ function buildItemEl(item, section) {
 
   // Badges
   let badges = "";
-  if (item.outOfStock) {
-    badges += ` <span class="badge-oos">${item.oosLabel || "אזל המלאי"}</span>`;
-  }
   if (item.vegan) {
     badges += ' <span class="badge-veg">🌿 טבעוני</span>';
   } else if (item.veg) {
@@ -1304,7 +1317,7 @@ function setDelivery(mode) {
 
 function calcItemCost(item) {
   const qty = quantities[item.id] || 0;
-  if (!qty || item.outOfStock) return 0;
+  if (!qty || item.available === false) return 0;
   if (item.fixed) {
     // Chalah bulk discount
     if (item.id === "s8") {
@@ -1696,6 +1709,7 @@ function closeWelcomeModal() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+buildBundleDishes(); // Build bundle dish list from currently-available main dishes
 renderAll();
 updateSummary();
 setupScrollSpy();
