@@ -426,9 +426,103 @@
   .weekly-details-section strong { color: var(--text); display: block; margin-bottom: 2px; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
+  /* WELCOME & INFO MODALS */
+  .welcome-modal-box {
+    background: white; border-radius: 20px;
+    padding: 32px 24px 28px; width: calc(100% - 40px); max-width: 420px;
+    animation: scaleIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+    text-align: center;
+  }
+  @keyframes scaleIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .welcome-emoji { font-size: 44px; margin-bottom: 10px; }
+  .welcome-title { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+  .welcome-sub { font-size: 15px; color: var(--text2); margin-bottom: 22px; line-height: 1.5; }
+  .welcome-btn-yes {
+    display: block; width: 100%; padding: 14px;
+    background: var(--gold-dark,#b8860b); color: white;
+    border: none; border-radius: 12px; font-size: 16px;
+    font-weight: 700; font-family: inherit; cursor: pointer;
+    margin-bottom: 10px; transition: opacity 0.15s;
+  }
+  .welcome-btn-yes:hover { opacity: 0.88; }
+  .welcome-btn-no {
+    display: block; width: 100%; padding: 11px;
+    background: none; border: 1.5px solid var(--border2);
+    border-radius: 12px; font-size: 14px; font-weight: 600;
+    font-family: inherit; cursor: pointer; color: var(--text2);
+    transition: border-color 0.15s;
+  }
+  .welcome-btn-no:hover { border-color: var(--text2); }
+
+  .info-modal-box {
+    background: white; border-radius: 20px 20px 0 0;
+    padding: 28px 20px 36px; width: 100%; max-width: 480px;
+    animation: slideUp 0.28s ease; max-height: 88vh; overflow-y: auto;
+    text-align: right;
+  }
+  .info-section {
+    background: var(--bg2); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 12px;
+  }
+  .info-section-icon { font-size: 22px; margin-bottom: 4px; display: block; }
+  .info-section-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .info-section-text { font-size: 13px; color: var(--text2); line-height: 1.7; }
+  .info-cta-btn {
+    display: block; width: 100%; padding: 16px;
+    background: var(--gold-dark,#b8860b); color: white;
+    border: none; border-radius: 12px; font-size: 16px;
+    font-weight: 700; font-family: inherit; cursor: pointer;
+    margin-top: 18px; transition: opacity 0.15s;
+  }
+  .info-cta-btn:hover { opacity: 0.88; }
+
   </style>
 </head>
 <body>
+
+<!-- Welcome modal (shown once per device) -->
+<div class="modal-overlay" id="welcome-modal" style="align-items:center;">
+  <div class="welcome-modal-box" dir="rtl">
+    <div class="welcome-emoji">🏠</div>
+    <div class="welcome-title">ביס של בית</div>
+    <div class="welcome-sub">זו הפעם הראשונה שלך כאן?<br>רוצה שנסביר לך איך זה עובד?</div>
+    <button class="welcome-btn-yes" onclick="showInfoModal()">✅ כן, ספר לי!</button>
+    <button class="welcome-btn-no" onclick="closeWelcomeModal()">➡️ לא תודה, להזמנה</button>
+  </div>
+</div>
+
+<!-- Info modal -->
+<div class="modal-overlay" id="info-modal" style="align-items:flex-end;">
+  <div class="info-modal-box" dir="rtl">
+    <div style="font-size:20px; font-weight:800; color:var(--text); margin-bottom:16px; text-align:center;">איך זה עובד? 🤔</div>
+
+    <div class="info-section">
+      <span class="info-section-icon">📅</span>
+      <div class="info-section-title">מתי פותחים הזמנות?</div>
+      <div class="info-section-text">ההזמנות נפתחות פעם בשבוע (בדרך כלל ביום חמישי) עבור השבוע העוקב, והאספקות מתחילות מיום ראשון אחר הצהריים.</div>
+    </div>
+
+    <div class="info-section">
+      <span class="info-section-icon">🥩</span>
+      <div class="info-section-title">איך בנויות המנות?</div>
+      <div class="info-section-text">רוב המנות שלנו מבוססות על חלבון עם מינימום תוספות. כך אתם משלמים בעיקר על ה"נטו" של החלבון, ומשלימים בבית או מוסיפים תוספת לפי בחירתכם.</div>
+    </div>
+
+    <div class="info-section">
+      <span class="info-section-icon">🍱</span>
+      <div class="info-section-title">כמה מנות מקבלים?</div>
+      <div class="info-section-text">המנות מיועדות לחלוקה ויכולות להספיק למספר ארוחות במהלך השבוע. לדוגמה, אריזת 800 גרם קציצות מכילה בדרך כלל כ־20–24 קציצות. בנוסף, יש גם מנות משולבות הכוללות תוספת כחלק מהמנה, כמו פסטה בולונז ועוד.</div>
+    </div>
+
+    <div class="info-section">
+      <span class="info-section-icon">🎁</span>
+      <div class="info-section-title">לא רוצים כמות גדולה מאותה מנה?</div>
+      <div class="info-section-text">בכל שבוע ייפתח גם מארז לבחירה, שבו תוכלו לבחור 4 מנות עיקריות מתוך תפריט השבוע. המארז כולל גם 2 תוספות וסלטים, כך שתיהנו ממגוון לאורך כל השבוע.</div>
+    </div>
+
+    <button class="info-cta-btn" onclick="closeInfoModal()">להזמנה ←</button>
+  </div>
+</div>
 
 <div class="top-bar">
 <div class="header">
@@ -1574,10 +1668,32 @@ function toggleWeeklyDetails(e) {
   btn.setAttribute("aria-expanded", !isOpen);
 }
 
+// ── WELCOME & INFO MODALS ──────────────────────────────────────────────────
+
+function showInfoModal() {
+  document.getElementById("welcome-modal").classList.remove("open");
+  document.getElementById("info-modal").classList.add("open");
+  localStorage.setItem("bis_seen_welcome", "1");
+}
+
+function closeInfoModal() {
+  document.getElementById("info-modal").classList.remove("open");
+}
+
+function closeWelcomeModal() {
+  document.getElementById("welcome-modal").classList.remove("open");
+  localStorage.setItem("bis_seen_welcome", "1");
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 renderAll();
 updateSummary();
 setupScrollSpy();
+
+// Show welcome modal on first visit
+if (!localStorage.getItem("bis_seen_welcome")) {
+  document.getElementById("welcome-modal").classList.add("open");
+}
 
 </script>
 </body>
