@@ -307,32 +307,45 @@ function cancelDel(id, btn) {
   if (actions && actions._orig) actions.innerHTML = actions._orig;
 }
 
+function stripBold(s) {
+  // Remove WhatsApp bold markers: *text* → text
+  return s.replace(/\*([^*]+)\*/g, '$1').trim();
+}
+
 function parseOrder() {
   var raw = document.getElementById('paste-in').value.trim();
   if (!raw) { toast('הדבק קודם הודעה'); return; }
   var nameM  = raw.match(/שם:\s*([^\n\r]+)/);
-  var name   = nameM ? nameM[1].trim() : '';
-  var totalM = raw.match(/סה"כ:\s*([\d.,]+)/);
+  var name   = nameM ? stripBold(nameM[1].trim()) : '';
+  var totalM = raw.match(/סה"כ[:\s*:]+\s*([\d.,]+)/);
   var amount = totalM ? parseFloat(totalM[1].replace(',','.')) : 0;
   var isDel  = raw.includes('משלוח') && !raw.includes('איסוף עצמי');
-  // Extract item lines: "- " lines, "•" bullets, and מארז header lines
+
+  // Extract item lines: "- " lines, "•" bullets, section headers, and מארז header lines
   var allLines = raw.split('\n');
   var itemLines = [];
   for (var li = 0; li < allLines.length; li++) {
     var l = allLines[li].trim();
+    var lClean = stripBold(l); // strip bold for matching
+
     // Regular item line
-    if (l.startsWith('- ')) {
-      itemLines.push(l.replace(/^- /, ''));
+    if (lClean.startsWith('- ')) {
+      itemLines.push(lClean.replace(/^- /, ''));
       continue;
     }
     // Bullet line (מארז sub-items)
-    if (l.startsWith('\u2022') || l.startsWith('\u2023') || /^[•·]/.test(l)) {
-      itemLines.push(l);
+    if (lClean.startsWith('\u2022') || lClean.startsWith('\u2023') || /^[•·]/.test(lClean)) {
+      itemLines.push(lClean);
       continue;
     }
     // מארז header line e.g. "מארז שבועי – 1 יח' = 180.0 ₪"
-    if (l.match(/^מארז.+יח'/)) {
-      itemLines.push('- ' + l);
+    if (lClean.match(/^מארז.+יח'/)) {
+      itemLines.push('- ' + lClean);
+      continue;
+    }
+    // Section header (e.g. "מנות עיקריות", "תוספות", "סלטים וממרחים", "מטבלים בצנצנת", "מארז שבועי")
+    if (detectSectionCat(lClean)) {
+      itemLines.push(lClean);
       continue;
     }
   }
@@ -495,32 +508,28 @@ function itemTotals() {
     while (i < lines.length) {
       var line = lines[i].trim();
 
-      // ── Section header (e.g. "מנות עיקריות", "תוספות") ──
-      // These lines have no dash-number pattern, just a title
-      if (!line.startsWith('-') && !line.startsWith('\u2022') && !line.startsWith('•')) {
-        var detectedCat = detectSectionCat(line);
-        if (detectedCat) { currentCat = detectedCat; i++; continue; }
-      }
-
-      // ── מארז: detect "מארז ... – N יח' = ..." ──
-      var mararMatch = line.match(/^-?\s*מארז.+?[–-]\s*(\d+)\s*יח'/);
+      // ── מארז item line: MUST be checked BEFORE section detection ──
+      // "מארז שבועי – 1 יח' = 180 ₪" would otherwise be swallowed as a section header
+      var mararMatch = line.replace(/^-\s*/,'').match(/^מארז.+?[–-]\s*(\d+)\s*יח'/);
       if (mararMatch) {
         var qty = parseInt(mararMatch[1]);
-        // Parse the bullet sub-items on following lines
         var parsed = parseBulletItems(lines, i + 1);
         parsed.mainDishes.forEach(function(name) { add(tot, name, qty * 400, 'גרם', 'main'); });
         parsed.sides.forEach(function(name)      { add(tot, name, qty * 400, 'גרם', 'sides'); });
         parsed.salads.forEach(function(name)     { add(tot, name, qty * 250, 'גרם', 'salads'); });
         i++;
-        // Skip bullet lines that were parsed
         while (i < lines.length && (lines[i].trim().startsWith('\u2022') || lines[i].trim().startsWith('•'))) i++;
         continue;
       }
 
-      // ── Regular item lines (start with "- ") ──
+      // ── Section header (e.g. "מנות עיקריות", "מארז שבועי" title without quantity) ──
+      if (!line.startsWith('-') && !line.startsWith('\u2022') && !line.startsWith('•')) {
+        var detectedCat = detectSectionCat(line);
+        if (detectedCat) { currentCat = detectedCat; i++; continue; }
+      }
+
+      // ── Regular item lines ──
       var cleanLine = line.replace(/^-\s*/, '');
-      // Skip bare מארז header lines (already handled above)
-      if (cleanLine.match(/^מארז.+יח'/)) { i++; continue; }
       if (cleanLine) {
         var qty2, unit2, name2;
         // Format: NAME [– CHOICE] – QTY גרם/יח' = PRICE ₪ [- extra]
