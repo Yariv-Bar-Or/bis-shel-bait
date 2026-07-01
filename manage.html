@@ -514,9 +514,9 @@ function itemTotals() {
       if (mararMatch) {
         var qty = parseInt(mararMatch[1]);
         var parsed = parseBulletItems(lines, i + 1);
-        parsed.mainDishes.forEach(function(name) { add(tot, name, qty * 400, 'גרם', 'main'); });
-        parsed.sides.forEach(function(name)      { add(tot, name, qty * 400, 'גרם', 'sides'); });
-        parsed.salads.forEach(function(name)     { add(tot, name, qty * 250, 'גרם', 'salads'); });
+        parsed.mainDishes.forEach(function(name) { add(tot, name, qty * 500, 'גרם', 'main'); });
+        parsed.sides.forEach(function(name)      { add(tot, name, qty * 500, 'גרם', 'sides'); });
+        parsed.salads.forEach(function(name)     { add(tot, name, qty,       "יח'", 'salads'); });
         i++;
         while (i < lines.length && (lines[i].trim().startsWith('\u2022') || lines[i].trim().startsWith('•'))) i++;
         continue;
