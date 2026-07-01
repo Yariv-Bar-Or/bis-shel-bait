@@ -776,7 +776,12 @@ function buildItemEl(item, section) {
   const hasQty = qty > 0;
   const isError = hasQty && qty < minQ;
   const weeklyChoiceNeeded = hasQty && item.weeklyDetails && (getBundleDishes().length !== getBundleMaxDishes() || bundleAllSlotsMissingChoice());
-  const choiceNeeded = (hasQty && item.checkbox && !choices[item.id]) || weeklyChoiceNeeded;
+  const choiceNeeded = (hasQty && item.checkbox && (
+    !choices[item.id] ||
+    (item.checkbox === "pad_kapao" && !choices[item.id + "_egg"]) ||
+    (item.checkbox === "beyond_choice_with_potato" && !choices[item.id + "_potato"]) ||
+    (item.checkbox === "veg_meatballs" && (!choices[item.id + "_style"] || !choices[item.id + "_sauce"]))
+  )) || weeklyChoiceNeeded;
 
   const div = document.createElement("div");
   div.className = "item" + (hasQty ? " has-qty" : "") + (isError ? " error-state" : "") + (choiceNeeded ? " choice-error" : "") + (item.outOfStock ? " out-of-stock" : "");
@@ -1100,7 +1105,12 @@ function setChoice(id, value) {
   if (id === "w1_mash" || id === "w1_salad" || id.startsWith("w1_dish_")) {
     refreshItem("w1");
   } else {
-    refreshItem(id);
+    // For sub-choice keys like m7n_style, m7n_sauce, m16_egg, m10_potato —
+    // extract the parent item id and refresh that instead
+    const suffixes = ["_style", "_sauce", "_egg", "_potato"];
+    const parentId = suffixes.reduce((found, suffix) =>
+      found || (id.endsWith(suffix) ? id.slice(0, -suffix.length) : null), null);
+    refreshItem(parentId || id);
   }
   updateSummary();
 }
