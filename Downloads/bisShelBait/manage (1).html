@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ביס של בית – ניהול הזמנות</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --gold: #C8973A; --gold-light: #F5E6C8; --gold-dark: #8B6520;
+  --bg: #FDFAF5; --bg2: #F5EFE2; --bg3: #EDE5D0;
+  --text: #2C2416; --text2: #6B5B3E; --text3: #9C8B6E;
+  --border: rgba(139,101,32,0.2); --border2: rgba(139,101,32,0.35);
+  --green: #27A060; --green-bg: #EAF3DE; --green-text: #27500A;
+  --red: #D94040; --red-bg: #FCEBEB; --red-text: #A32D2D; --wa: #25D366;
+}
+body { font-family: 'Segoe UI','Arial Hebrew',Arial,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding-bottom:80px; }
+.header { background:var(--text); color:var(--gold-light); padding:1.2rem 1rem; border-bottom:2px solid var(--gold); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.header-logo { font-size:20px; font-weight:700; }
+.header-logo span { color:var(--gold); }
+.header-sub { font-size:11px; color:var(--text3); margin-top:2px; }
+.tabs { background:var(--bg2); border-bottom:1px solid var(--border2); display:flex; overflow-x:auto; scrollbar-width:none; }
+.tabs::-webkit-scrollbar { display:none; }
+.tab { flex:1; min-width:72px; padding:12px 8px 10px; text-align:center; font-size:12px; font-weight:500; color:var(--text2); cursor:pointer; border-bottom:2.5px solid transparent; white-space:nowrap; transition:color .15s; user-select:none; }
+.tab.active { color:var(--gold-dark); border-bottom-color:var(--gold); font-weight:700; }
+.tab .cnt { display:inline-block; background:var(--gold); color:white; border-radius:9px; font-size:10px; font-weight:700; padding:1px 5px; margin-right:2px; vertical-align:middle; }
+.panel { display:none; padding:12px 12px 0; }
+.panel.active { display:block; }
+.add-box { background:white; border:1.5px solid var(--border2); border-radius:14px; padding:14px; margin-bottom:14px; }
+.add-box h2 { font-size:14px; font-weight:700; color:var(--gold-dark); margin-bottom:12px; }
+.form-row { margin-bottom:10px; }
+.form-row label { display:block; font-size:12px; color:var(--text2); margin-bottom:4px; font-weight:600; }
+.fi { width:100%; padding:9px 11px; border:1px solid var(--border2); border-radius:8px; font-size:13px; font-family:inherit; color:var(--text); background:var(--bg); outline:none; transition:border-color .15s; }
+.fi:focus { border-color:var(--gold); background:white; }
+textarea.fi { resize:vertical; min-height:80px; }
+.row2 { display:flex; gap:8px; }
+.row2 .form-row { flex:1; }
+.del-row { display:flex; gap:8px; margin-bottom:10px; }
+.del-opt { flex:1; padding:9px 6px; border:1.5px solid var(--border2); border-radius:8px; text-align:center; font-size:13px; cursor:pointer; font-family:inherit; background:white; color:var(--text2); transition:all .15s; }
+.del-opt.sel { border-color:var(--gold); background:var(--gold-light); color:var(--gold-dark); font-weight:600; }
+.btn-add { width:100%; padding:11px; background:var(--text); color:var(--gold-light); border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+.btn-parse { width:100%; padding:10px; background:var(--bg3); color:var(--text); border:1.5px solid var(--border2); border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:8px; }
+.btn-parse:hover { background:var(--gold-light); border-color:var(--gold); }
+.paste-hint { font-size:11px; color:var(--text3); margin-bottom:6px; text-align:center; }
+.order-card { background:white; border:1px solid var(--border); border-radius:12px; padding:13px 13px 10px; margin-bottom:10px; transition:opacity .35s; }
+.order-card.done-fade { opacity:0; pointer-events:none; }
+.card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+.order-name { font-size:15px; font-weight:700; }
+.order-amount { font-size:16px; font-weight:700; color:var(--gold-dark); white-space:nowrap; }
+.order-meta { display:flex; gap:7px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+.badge { border-radius:20px; padding:2px 8px; font-weight:600; font-size:10px; }
+.b-pickup   { background:var(--bg3); color:var(--text2); }
+.b-delivery { background:#E8F0FE; color:#1A56DB; }
+.b-paid     { background:var(--green-bg); color:var(--green-text); }
+.b-unpaid   { background:var(--red-bg); color:var(--red-text); }
+.b-dt       { background:var(--gold-light); color:var(--gold-dark); }
+.order-items { font-size:12px; color:var(--text2); line-height:1.6; margin-bottom:10px; border-top:1px solid var(--border); padding-top:7px; }
+.dt-row { display:flex; gap:6px; align-items:center; margin-bottom:10px; }
+.dt-row input { flex:1; padding:7px 9px; border:1px solid var(--border2); border-radius:8px; font-size:13px; font-family:inherit; color:var(--text); background:var(--bg); outline:none; }
+.dt-row input:focus { border-color:var(--gold); }
+.dt-save { padding:7px 12px; border:1.5px solid var(--gold); border-radius:8px; background:var(--gold-light); color:var(--gold-dark); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
+.dt-save:hover { background:var(--gold); color:white; }
+.checks-row { display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+.chk-lbl { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; cursor:pointer; padding:7px 12px; border:1.5px solid var(--border2); border-radius:8px; background:var(--bg2); color:var(--text2); transition:all .15s; user-select:none; }
+.chk-lbl input[type=checkbox] { width:16px; height:16px; accent-color:var(--green); cursor:pointer; }
+.chk-lbl.ck-paid { border-color:var(--green); background:var(--green-bg); color:var(--green-text); }
+.chk-lbl.ck-done { border-color:#1A56DB; background:#E8F0FE; color:#1A56DB; }
+.card-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+.btn-sm { font-size:11px; font-weight:600; padding:5px 10px; border-radius:7px; border:1.5px solid var(--border2); background:white; cursor:pointer; font-family:inherit; color:var(--text2); white-space:nowrap; text-decoration:none; display:inline-block; }
+.btn-sm:hover { border-color:var(--gold); color:var(--gold-dark); }
+.btn-sm.red { border-color:var(--red); background:var(--red-bg); color:var(--red-text); }
+.btn-sm.wa  { border-color:var(--wa); background:#e8f9f0; color:#135f33; }
+.sum-box { background:white; border:1px solid var(--border); border-radius:12px; padding:13px; margin-bottom:12px; }
+.sum-box h3 { font-size:13px; font-weight:700; color:var(--gold-dark); margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:7px; }
+.sum-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:0.5px solid var(--border); font-size:13px; color:var(--text2); }
+.sum-row:last-child { border-bottom:none; }
+.sum-row .qty { font-weight:700; color:var(--text); }
+.sum-total { display:flex; justify-content:space-between; padding:8px 0 0; font-size:15px; font-weight:700; border-top:2px solid var(--border2); margin-top:4px; }
+.sum-total .amt { color:var(--gold-dark); }
+.wa-big { display:block; width:100%; padding:13px; color:white; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; text-align:center; margin-top:10px; }
+.sec-lbl { font-size:12px; font-weight:700; padding:6px 10px; border-radius:8px; margin:4px 0 8px; }
+.empty { text-align:center; color:var(--text3); padding:40px 20px; font-size:14px; }
+.empty-icon { font-size:36px; margin-bottom:10px; }
+.toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--text); color:var(--gold-light); border-radius:10px; padding:10px 20px; font-size:13px; font-weight:600; z-index:999; opacity:0; pointer-events:none; transition:all .25s; white-space:nowrap; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.loading-bar { text-align:center; color:var(--text3); padding:30px; font-size:13px; }
+.item-row { border-bottom:0.5px solid var(--border); padding:8px 0; }
+.item-row:last-child { border-bottom:none; }
+.item-top { display:flex; align-items:center; gap:8px; }
+.item-top input[type=checkbox] { width:18px; height:18px; accent-color:var(--green); cursor:pointer; flex-shrink:0; }
+.item-name { flex:1; font-size:13px; color:var(--text2); }
+.item-name.done-item { text-decoration:line-through; color:var(--text3); }
+.item-qty { font-weight:700; font-size:13px; color:var(--text); white-space:nowrap; }
+.item-note { width:100%; margin-top:6px; padding:6px 9px; border:1px solid var(--border2); border-radius:7px; font-size:12px; font-family:inherit; color:var(--text); background:var(--bg); outline:none; resize:none; }
+.item-note:focus { border-color:var(--gold); background:white; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-logo">ביס של <span>בית</span></div>
+    <div class="header-sub">ניהול הזמנות</div>
+  </div>
+  <div style="font-size:11px;color:var(--text3);text-align:left;">
+    <span id="hdr-cnt">0</span> הזמנות<br>
+    <span id="hdr-sum" style="color:var(--gold);font-weight:700;">₪0</span> סה"כ
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="go('orders')"   id="tab-orders">📋 הזמנות <span class="cnt" id="cnt-orders">0</span></div>
+  <div class="tab"        onclick="go('payments')" id="tab-payments">💳 תשלום <span class="cnt" id="cnt-unpaid">0</span></div>
+  <div class="tab"        onclick="go('pickup')"   id="tab-pickup">🗓️ איסוף <span class="cnt" id="cnt-pickup">0</span></div>
+  <div class="tab"        onclick="go('totals')"   id="tab-totals">📊 כמויות</div>
+  <div class="tab"        onclick="go('add')"      id="tab-add">➕ הוסף</div>
+</div>
+
+<div class="panel active" id="panel-orders"><div id="lst-orders"><div class="loading-bar">טוען הזמנות...</div></div></div>
+<div class="panel"        id="panel-payments"><div id="lst-payments"></div></div>
+<div class="panel"        id="panel-pickup"><div id="lst-pickup"></div></div>
+
+<div class="panel" id="panel-totals">
+  <div class="sum-box"><h3>🍳 סיכום כמויות לפי מנה</h3><div id="tot-items"></div></div>
+  <div class="sum-box"><h3>💰 סיכום כספי</h3><div id="tot-money"></div></div>
+  <button class="wa-big" style="background:var(--wa);"  onclick="sendWaTotals()">📋 שלח סיכום כמויות לוואטסאפ</button>
+  <button class="wa-big" style="background:#1A56DB;margin-top:8px;" onclick="sendWaPayments()">💳 שלח סיכום תשלומים לוואטסאפ</button>
+  <button class="wa-big" style="background:#6B21A8;margin-top:8px;" onclick="sendWaPickup()">🗓️ שלח סיכום איסוף לוואטסאפ</button>
+  <div style="height:14px;"></div>
+</div>
+
+<div class="panel" id="panel-add">
+  <div class="add-box">
+    <h2>📲 הדבק הזמנה מוואטסאפ</h2>
+    <div class="paste-hint">הדבק כאן את הודעת הוואטסאפ שקיבלת מהלקוח</div>
+    <textarea class="fi" id="paste-in" rows="6" placeholder="הזמנה חדשה – ביס של בית&#10;שם: ..."></textarea>
+    <button class="btn-parse" onclick="parseOrder()">⚡ ייבא הזמנה</button>
+  </div>
+  <div class="add-box">
+    <h2>✍️ הוסף הזמנה ידנית</h2>
+    <div class="form-row"><label>שם לקוח</label><input class="fi" id="m-name" type="text" placeholder="שם מלא"></div>
+    <div class="form-row"><label>פירוט הזמנה</label><textarea class="fi" id="m-items" rows="4" placeholder="קציצות עוף 800 גרם..."></textarea></div>
+    <div class="row2">
+      <div class="form-row"><label>סכום (₪)</label><input class="fi" id="m-amount" type="number" inputmode="decimal" placeholder="0"></div>
+      <div class="form-row"><label>תאריך ושעה</label><input class="fi" id="m-datetime" type="datetime-local"></div>
+    </div>
+    <div class="form-row">
+      <label>סוג</label>
+      <div class="del-row">
+        <button class="del-opt sel" id="opt-pickup"   onclick="setDel('pickup')">🚶 איסוף</button>
+        <button class="del-opt"     id="opt-delivery" onclick="setDel('delivery')">🛵 משלוח</button>
+      </div>
+    </div>
+    <button class="btn-add" onclick="addManual()">✅ הוסף הזמנה</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var PHONE  = "972549103442";
+var SB_URL = "https://ctcxastuidhusfqffqlh.supabase.co";
+var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0Y3hhc3R1aWRodXNmcWZmcWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDE5NDUsImV4cCI6MjA5ODIxNzk0NX0.iZMOy7aG-F5AEaeBATNYWrQbF0AXd_UC0YJxFBzwLXE";
+
+var delivMode = 'pickup';
+var orders = [];
+
+function sbFetch(path, method, body) {
+  var opts = {
+    method: method || 'GET',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation,resolution=merge-duplicates' : ''
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(SB_URL + '/rest/v1/' + path, opts).then(function(r) {
+    if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
+    return r.status === 204 ? null : r.json();
+  });
+}
+
+function loadOrders() {
+  return sbFetch('orders?select=*&order=ts.asc').then(function(data) {
+    orders = data || [];
+    render();
+  }).catch(function(e) {
+    toast('שגיאה בטעינה: ' + e.message);
+  });
+}
+
+function saveOrder(order) {
+  return sbFetch('orders', 'POST', order).then(function() {
+    return loadOrders();
+  });
+}
+
+function updateOrder(id, fields) {
+  return sbFetch('orders?id=eq.' + id, 'PATCH', fields).catch(function(e) {
+    toast('שגיאה בעדכון: ' + e.message);
+  });
+}
+
+function deleteOrderDB(id) {
+  return sbFetch('orders?id=eq.' + id, 'DELETE').then(function() {
+    return loadOrders();
+  });
+}
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+function go(tab) {
+  document.querySelectorAll('.tab').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.panel').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+  render();
+}
+
+function setDel(mode) {
+  delivMode = mode;
+  document.getElementById('opt-pickup').classList.toggle('sel', mode==='pickup');
+  document.getElementById('opt-delivery').classList.toggle('sel', mode==='delivery');
+}
+
+function checkDone(id) {
+  var o = orders.find(function(x){ return x.id===id; });
+  if (!o || !o.paid || !o.done) return;
+  var card = document.getElementById('card-'+id);
+  if (card) card.classList.add('done-fade');
+  var name = o.name;
+  // Mark as being deleted to prevent re-render conflicts
+  o._deleting = true;
+  setTimeout(function(){
+    deleteOrderDB(id).then(function(){
+      toast('🎉 הזמנת '+name+' הושלמה ונמחקה');
+    }).catch(function(){
+      o._deleting = false;
+      toast('שגיאה במחיקה');
+    });
+  }, 380);
+}
+
+function togglePaid(id) {
+  var o = orders.find(function(x){ return x.id===id; });
+  if (!o) return;
+  o.paid = !o.paid;
+  var cb  = document.getElementById('cb-paid-'+id);
+  var lbl = document.getElementById('lbl-paid-'+id);
+  if (cb)  cb.checked = o.paid;
+  if (lbl) lbl.className = 'chk-lbl' + (o.paid ? ' ck-paid' : '');
+  toast(o.paid ? '✅ סומן ששולם' : '↩️ סומן כטרם שולם');
+  updateOrder(id, { paid: o.paid });
+  checkDone(id);
+}
+
+function toggleDone(id) {
+  var o = orders.find(function(x){ return x.id===id; });
+  if (!o) return;
+  o.done = !o.done;
+  var cb  = document.getElementById('cb-done-'+id);
+  var lbl = document.getElementById('lbl-done-'+id);
+  if (cb)  cb.checked = o.done;
+  if (lbl) lbl.className = 'chk-lbl' + (o.done ? ' ck-done' : '');
+  toast(o.done ? '📦 סומן כבוצע' : '↩️ בוטל ביצוע');
+  updateOrder(id, { done: o.done });
+  checkDone(id);
+}
+
+function saveDT(id) {
+  var val = document.getElementById('dt-input-'+id).value;
+  var o = orders.find(function(x){ return x.id===id; });
+  if (!o) return;
+  o.datetime = val || null;
+  updateOrder(id, { datetime: o.datetime }).then(function(){
+    toast('📅 תאריך ושעה עודכנו');
+    render();
+  }).catch(function(e){
+    toast('שגיאה בשמירת תאריך');
+    console.log('saveDT error:', e);
+  });
+}
+
+function delOrder(id) {
+  var card = document.getElementById('card-'+id);
+  if (!card) return;
+  var actions = card.querySelector('.card-actions');
+  if (!actions) return;
+  var orig = actions.innerHTML;
+  actions.innerHTML = '<span style="font-size:12px;color:var(--red-text);font-weight:600;">בטוח למחוק?</span>'
+    + '<button class="btn-sm red" onclick="confirmDel('+id+')">✔ כן</button>'
+    + '<button class="btn-sm" onclick="cancelDel('+id+',this)">✖ לא</button>';
+  actions._orig = orig;
+}
+function confirmDel(id) {
+  deleteOrderDB(id).then(function(){ toast('🗑️ נמחק'); });
+}
+function cancelDel(id, btn) {
+  var actions = btn.closest('.card-actions');
+  if (actions && actions._orig) actions.innerHTML = actions._orig;
+}
+
+function stripBold(s) {
+  // Remove WhatsApp bold markers: *text* → text
+  return s.replace(/\*([^*]+)\*/g, '$1').trim();
+}
+
+function parseOrder() {
+  var raw = document.getElementById('paste-in').value.trim();
+  if (!raw) { toast('הדבק קודם הודעה'); return; }
+  var nameM  = raw.match(/שם:\s*([^\n\r]+)/);
+  var name   = nameM ? stripBold(nameM[1].trim()) : '';
+  var totalM = raw.match(/סה"כ[:\s*:]+\s*([\d.,]+)/);
+  var amount = totalM ? parseFloat(totalM[1].replace(',','.')) : 0;
+  var isDel  = raw.includes('משלוח') && !raw.includes('איסוף עצמי');
+
+  // Extract delivery address if present
+  var addrM = raw.match(/כתובת[^:]*:\s*([^\n\r]+)/);
+  var address = addrM ? stripBold(addrM[1].trim()).replace(/,/g, '') : '';
+
+  // Extract item lines: "- " lines, "•" bullets, מארז header lines,
+  // and standalone item lines (NAME – QTY גרם/יח' = PRICE) under a known section header
+  var allLines = raw.split('\n');
+  var itemLines = [];
+  var inSection = false; // true once we've seen a known section header
+  var currentSectionName = ''; // track the current section for display
+  // Lines we never want to treat as items even if they contain numbers
+  var SKIP_RE = /^(שם|כתובת|דמי משלוח|משלוח\s*\(|משלוח\s*$|איסוף עצמי|הזמנה חדשה|פירוט|סה"כ|תשלום|בדיקה|הוא)?/i;
+
+  for (var li = 0; li < allLines.length; li++) {
+    var l = allLines[li].trim();
+    var lClean = stripBold(l);
+    if (!lClean) continue; // skip empty lines
+
+    // Regular item line (explicit dash prefix)
+    if (lClean.startsWith('- ')) {
+      itemLines.push(lClean.replace(/^- /, ''));
+      continue;
+    }
+    // Bullet line (מארז sub-items)
+    if (lClean.startsWith('\u2022') || lClean.startsWith('\u2023') || /^[•·]/.test(lClean)) {
+      itemLines.push(lClean);
+      inSection = false; // bullets reset — we're inside a מארז block, not a plain section
+      continue;
+    }
+    // מארז header line e.g. "מארז שבועי – 1 יח' = 180.0 ₪"
+    if (lClean.match(/^מארז.+[–\-]\s*\d+\s*יח'/)) {
+      itemLines.push('- ' + lClean);
+      inSection = false;
+      continue;
+    }
+    // Known section header (e.g. "מנות עיקריות", "תוספות", "סלטים וממרחים", ...)
+    var detectedCat = detectSectionCat(lClean);
+    if (detectedCat) {
+      currentSectionName = lClean;
+      inSection = true;
+      // Don't add section header itself to items, only use it to track category
+      continue;
+    }
+    // Standalone item line under a section header — no leading dash required.
+    // Must look like "NAME [– CHOICE] – QTY גרם/יח' [= PRICE ₪]"
+    // and must not be a metadata line (address, delivery fee, total, etc.)
+    if (inSection && lClean && /[\d]/.test(lClean) &&
+        /[–\-]\s*\d+\s*(גרם|יח')/.test(lClean) &&
+        !SKIP_RE.test(lClean)) {
+      itemLines.push('- ' + lClean);
+      continue;
+    }
+  }
+  var items  = itemLines.join('\n');
+  if (!name) { toast('לא נמצא שם בהודעה'); return; }
+  var order = { id: Date.now(), name:name, items:items||raw.trim(), amount:amount,
+                delivery:isDel?'delivery':'pickup', address:address,
+                datetime:null, paid:false, done:false, ts:Date.now() };
+  document.getElementById('paste-in').value = '';
+  toast('שומר...');
+  saveOrder(order).then(function(){ toast('✅ הזמנה נוספה!'); go('orders'); });
+}
+
+function addManual() {
+  var name     = document.getElementById('m-name').value.trim();
+  var items    = document.getElementById('m-items').value.trim();
+  var amount   = parseFloat(document.getElementById('m-amount').value) || 0;
+  var datetime = document.getElementById('m-datetime').value || null;
+  if (!name) { toast('חסר שם לקוח'); return; }
+  var order = { id: Date.now(), name:name, items:items, amount:amount,
+                delivery:delivMode, address:'', datetime:datetime, paid:false, done:false, ts:Date.now() };
+  document.getElementById('m-name').value = '';
+  document.getElementById('m-items').value = '';
+  document.getElementById('m-amount').value = '';
+  document.getElementById('m-datetime').value = '';
+  toast('שומר...');
+  saveOrder(order).then(function(){ toast('✅ הזמנה נוספה!'); go('orders'); });
+}
+
+function fmtDT(dt) {
+  if (!dt) return null;
+  var d = new Date(dt);
+  if (isNaN(d)) return null;
+  return d.getDate()+'/'+(d.getMonth()+1)+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function pad(n) { return n < 10 ? '0'+n : ''+n; }
+function waLink(text) { return 'https://wa.me/'+PHONE+'?text='+encodeURIComponent(text); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+function card(o) {
+  var tb = o.delivery==='delivery'
+    ? '<span class="badge b-delivery">🛵 משלוח</span>'
+    : '<span class="badge b-pickup">🚶 איסוף</span>';
+  var pb = o.paid
+    ? '<span class="badge b-paid">✅ שולם</span>'
+    : '<span class="badge b-unpaid">⏳ טרם שולם</span>';
+  var dt = fmtDT(o.datetime);
+  var db = dt ? '<span class="badge b-dt">📅 '+dt+'</span>' : '';
+  var addrLine = (o.delivery==='delivery' && o.address) ? '\nכתובת: '+o.address : '';
+  var waText = 'הזמנת '+o.name+'\n'+(o.delivery==='delivery'?'משלוח':'איסוף')+(dt?' – '+dt:'')+addrLine+'\n'+(o.paid?'שולם':'טרם שולם')+'\n'+o.amount+' ₪\n\n'+o.items;
+  return '<div class="order-card" id="card-'+o.id+'">'
+    + '<div class="card-top"><div class="order-name">'+esc(o.name)+'</div><div class="order-amount">'+o.amount+' ₪</div></div>'
+    + '<div class="order-meta">'+tb+pb+db+'</div>'
+    + (o.delivery==='delivery' && o.address ? '<div style="font-size:12px;color:#1A56DB;margin-bottom:6px;">📍 '+esc(o.address)+'</div>' : '')
+    + (o.items ? '<div class="order-items">'+esc(o.items)+'</div>' : '')
+    + '<div class="dt-row"><input type="datetime-local" id="dt-input-'+o.id+'" value="'+(o.datetime||'')+'"><button class="dt-save" onclick="saveDT('+o.id+')">שמור תאריך</button></div>'
+    + '<div class="checks-row">'
+    +   '<label class="chk-lbl'+(o.paid?' ck-paid':'')+'" id="lbl-paid-'+o.id+'" onclick="togglePaid('+o.id+')">'
+    +     '<input type="checkbox" id="cb-paid-'+o.id+'" '+(o.paid?'checked':'')+' onclick="event.preventDefault()"> שולם'
+    +   '</label>'
+    +   '<label class="chk-lbl'+(o.done?' ck-done':'')+'" id="lbl-done-'+o.id+'" onclick="toggleDone('+o.id+')">'
+    +     '<input type="checkbox" id="cb-done-'+o.id+'" '+(o.done?'checked':'')+' onclick="event.preventDefault()"> בוצע'
+    +   '</label>'
+    + '</div>'
+    + '<div class="card-actions">'
+    +   '<a class="btn-sm wa" href="'+waLink(waText)+'" target="_blank">📲 ווצאפ</a>'
+    +   '<button class="btn-sm red" onclick="delOrder('+o.id+')">🗑️ מחק</button>'
+    + '</div>'
+    + '</div>';
+}
+
+function parseBulletItems(lines, startIdx) {
+  // Parse bullet lines (starting with •) after a מארז line
+  // Returns { mainDishes: [...], sides: [...], salads: [...] }
+  // Each entry is the FULL dish name including sauce/choice (e.g. "קציצות עוף – ברוטב מרוקאי")
+  var mainDishes = [], sides = [], salads = [];
+  var mode = 'main'; // main, sides, salads
+  for (var i = startIdx; i < lines.length; i++) {
+    var l = lines[i].trim();
+    if (!l) continue;
+    // Stop if we hit a new top-level line (not a bullet)
+    if (!l.startsWith('\u2022') && !l.startsWith('•')) break;
+    var text = l.replace(/^[\u2022•]\s*/, '').trim();
+
+    // Detect "תוספות (כלולות): item1, item2" — header + comma-separated items on same line
+    var sidesMatch = text.match(/^תוספו?ת[^:]*:\s*(.+)/);
+    if (sidesMatch) {
+      mode = 'sides';
+      sidesMatch[1].split(',').forEach(function(item) {
+        var name = item.trim();
+        if (name) sides.push(name);
+      });
+      continue;
+    }
+
+    // Detect "סלט (כלול): item1, item2"
+    var saladMatch = text.match(/^סלט[^:]*:\s*(.+)/);
+    if (saladMatch) {
+      mode = 'salads';
+      saladMatch[1].split(',').forEach(function(item) {
+        var name = item.trim();
+        if (name) salads.push(name);
+      });
+      continue;
+    }
+
+    // Plain section headers without items on same line
+    if (text.match(/^תוספו?ת/)) { mode = 'sides'; continue; }
+    if (text.match(/^סלט/))     { mode = 'salads'; continue; }
+
+    // Regular bullet — keep full name including choice (e.g. "קציצות עוף – ברוטב מרוקאי")
+    var dishName = text.trim();
+    if (!dishName) return;
+    if (mode === 'salads') salads.push(dishName);
+    else if (mode === 'sides') sides.push(dishName);
+    else mainDishes.push(dishName);
+  }
+  return { mainDishes: mainDishes, sides: sides, salads: salads };
+}
+
+// ── CATEGORY HELPERS ──────────────────────────────────────────────────────────
+var CAT_ORDER = ['main', 'sides', 'salads', 'condiments', 'other'];
+var CAT_LABELS = {
+  main:       '🍗 מנות עיקריות',
+  sides:      '🍚 תוספות',
+  salads:     '🥗 סלטים וממרחים',
+  condiments: '🫙 מטבלים בצנצנת',
+  other:      '📦 אחר'
+};
+
+// Section header keywords → category key
+var SECTION_MAP = [
+  { re: /מנות עיקריות/,    cat: 'main'       },
+  { re: /תוספות/,          cat: 'sides'      },
+  { re: /סלטים|ממרחים/,    cat: 'salads'     },
+  { re: /מטבלים|צנצנת/,    cat: 'condiments' },
+  { re: /מארז/,            cat: 'main'       }  // מארז items split into their own cats inside
+];
+
+function detectSectionCat(line) {
+  for (var si = 0; si < SECTION_MAP.length; si++) {
+    if (SECTION_MAP[si].re.test(line)) return SECTION_MAP[si].cat;
+  }
+  return null;
+}
+
+// Parse the full dish name from a regular item line, preserving choice/sauce suffix
+// e.g. "קציצות עוף – ברוטב פרסי – 1100 גרם = 93.5 ₪" → "קציצות עוף – ברוטב פרסי"
+function parseItemName(line) {
+  // Pattern: NAME [– CHOICE] – QTY גרם/יח' [= PRICE ₪] [- extra]
+  // We want everything before the last "– NUMBER גרם/יח'"
+  var m = line.match(/^(.*?)\s*[–-]\s*\d+\s*(גרם|יח')/);
+  if (m) return m[1].trim();
+  return line.trim();
+}
+
+function itemTotals() {
+  var tot = {};
+  orders.forEach(function(o) {
+    var lines = (o.items||'').split('\n');
+    var i = 0;
+    var currentCat = 'main'; // default
+    while (i < lines.length) {
+      var line = lines[i].trim();
+
+      // ── מארז item line: MUST be checked BEFORE section detection ──
+      // "מארז שבועי – 1 יח' = 180 ₪" would otherwise be swallowed as a section header
+      var mararMatch = line.replace(/^-\s*/,'').match(/^מארז.+?[–-]\s*(\d+)\s*יח'/);
+      if (mararMatch) {
+        var qty = parseInt(mararMatch[1]);
+        var parsed = parseBulletItems(lines, i + 1);
+        parsed.mainDishes.forEach(function(name) { add(tot, name, qty * 500, 'גרם', 'main'); });
+        parsed.sides.forEach(function(name)      { add(tot, name, qty * 500, 'גרם', 'sides'); });
+        parsed.salads.forEach(function(name)     { add(tot, name, qty,       "יח'", 'salads'); });
+        i++;
+        while (i < lines.length && (lines[i].trim().startsWith('\u2022') || lines[i].trim().startsWith('•'))) i++;
+        continue;
+      }
+
+      // ── Section header (e.g. "מנות עיקריות", "מארז שבועי" title without quantity) ──
+      if (!line.startsWith('-') && !line.startsWith('\u2022') && !line.startsWith('•')) {
+        var detectedCat = detectSectionCat(line);
+        if (detectedCat) { currentCat = detectedCat; i++; continue; }
+      }
+
+      // ── Regular item lines ──
+      var cleanLine = line.replace(/^-\s*/, '');
+      if (cleanLine) {
+        var qty2, unit2, name2;
+        // Format: NAME [– CHOICE] – QTY גרם/יח' = PRICE ₪ [- extra]
+        var m2 = cleanLine.match(/^(.*?)\s*[–-]\s*(\d+)\s*(גרם|יח')\s*=\s*[\d.]+/);
+        if (m2) {
+          name2 = m2[1].trim();
+          qty2  = parseInt(m2[2]);
+          unit2 = m2[3];
+          add(tot, name2, qty2, unit2, currentCat);
+          i++; continue;
+        }
+        // Format: QTY גרם/יח' NAME
+        var m3 = cleanLine.match(/^(\d+)\s*(גרם|יח')\s+(.+?)(?:\s*[–-]\s*[\d.]+)?$/);
+        if (m3) {
+          add(tot, m3[3].trim(), parseInt(m3[1]), m3[2], currentCat);
+          i++; continue;
+        }
+        // Format: NAME – QTY גרם/יח'
+        var m4 = cleanLine.match(/^(.*?)\s*[–-]\s*(\d+)\s*(גרם|יח')/);
+        if (m4) {
+          add(tot, m4[1].trim(), parseInt(m4[2]), m4[3], currentCat);
+          i++; continue;
+        }
+        // Fallback: any number + unit
+        var m5 = cleanLine.match(/(\d+)\s*(גרם|יח')/);
+        if (m5) {
+          var fb = cleanLine.replace(/\d+\s*(גרם|יח').*/, '').replace(/[–\-=]/g,'').trim() || cleanLine;
+          add(tot, fb, parseInt(m5[1]), m5[2], currentCat);
+          i++; continue;
+        }
+      }
+      i++;
+    }
+  });
+  return tot;
+}
+
+function add(tot, name, qty, unit, cat) {
+  cat = cat || 'other';
+  var key = cat + '__' + name + '__' + unit;
+  if (!tot[key]) tot[key] = { name:name, unit:unit, qty:0, cat:cat };
+  tot[key].qty += qty;
+}
+
+function fmtQty(qty, unit) {
+  if (unit==='גרם' && qty>=1000) return (qty/1000).toFixed(1).replace(/\.0$/,'')+' ק"ג';
+  return qty+' '+unit;
+}
+
+function sorted() {
+  return orders.slice().sort(function(a,b) {
+    var da = a.datetime ? new Date(a.datetime) : new Date(9999,0,1);
+    var db = b.datetime ? new Date(b.datetime) : new Date(9999,0,1);
+    return da-db || b.ts-a.ts;
+  });
+}
+
+function groupByDay(arr) {
+  var byDay = {};
+  arr.forEach(function(o) {
+    var k = 'ללא תאריך';
+    if (o.datetime) { var d=new Date(o.datetime); if(!isNaN(d)) k=d.getDate()+'/'+(d.getMonth()+1); }
+    if (!byDay[k]) byDay[k]=[];
+    byDay[k].push(o);
+  });
+  var days = Object.keys(byDay).sort(function(a,b) {
+    if (a==='ללא תאריך') return 1; if (b==='ללא תאריך') return -1;
+    var pa=a.split('/'), pb=b.split('/');
+    return (parseInt(pa[1])-parseInt(pb[1])) || (parseInt(pa[0])-parseInt(pb[0]));
+  });
+  return { byDay:byDay, days:days };
+}
+
+// ── ITEM CHECKLIST STATE (Supabase) ──
+var itemStates = {};
+
+function safeKey(k) { return k.replace(/[^a-zA-Zא-ת0-9]/g, '_'); }
+
+function loadItemStates() {
+  return sbFetch('item_notes?select=*').then(function(data) {
+    itemStates = {};
+    (data||[]).forEach(function(row) {
+      // Store by both raw key and safeKey to ensure lookup works
+      itemStates[row.key] = row;
+      itemStates[safeKey(row.key)] = row;
+    });
+  }).catch(function(e) { console.log('item_notes load error:', e); });
+}
+
+function upsertItemState(k, fields) {
+  var body = Object.assign({ key: k }, fields);
+  return sbFetch('item_notes?on_conflict=key', 'POST', body).catch(function(e) {
+    console.log('item_notes upsert error:', e);
+  });
+}
+
+function toggleItemDone(k) {
+  if (!itemStates[k]) itemStates[k] = { key: k, done: false, note: '' };
+  itemStates[k].done = !itemStates[k].done;
+  var cb  = document.getElementById('icb-'+k);
+  var lbl = document.getElementById('iname-'+k);
+  if (cb)  cb.checked = itemStates[k].done;
+  if (lbl) lbl.className = 'item-name' + (itemStates[k].done ? ' done-item' : '');
+  upsertItemState(k, { done: itemStates[k].done, note: itemStates[k].note || '' });
+}
+
+function saveItemNote(k) {
+  var el = document.getElementById('inote-'+k);
+  if (!el) return;
+  if (!itemStates[k]) itemStates[k] = { key: k, done: false, note: '' };
+  itemStates[k].note = el.value;
+  upsertItemState(k, { done: itemStates[k].done || false, note: el.value });
+}
+
+function renderTotItems(tot, keys) {
+  // Group keys by category
+  var byCat = {};
+  CAT_ORDER.forEach(function(c) { byCat[c] = []; });
+  keys.forEach(function(k) {
+    var cat = tot[k].cat || 'other';
+    if (!byCat[cat]) byCat[cat] = [];
+    byCat[cat].push(k);
+  });
+
+  var html = '';
+  CAT_ORDER.forEach(function(cat) {
+    var catKeys = byCat[cat];
+    if (!catKeys || !catKeys.length) return;
+    // Sort alphabetically within category
+    catKeys.sort(function(a,b){ return tot[a].name.localeCompare(tot[b].name,'he'); });
+    html += '<div style="font-size:12px;font-weight:700;color:var(--gold-dark);background:var(--bg3);padding:6px 10px;border-radius:8px;margin:10px 0 6px;">'
+          + CAT_LABELS[cat] + '</div>';
+    catKeys.forEach(function(k) {
+      var item = tot[k];
+      var sk   = safeKey(k);
+      var st   = itemStates[sk] || {};
+      html += '<div class="item-row">'
+        + '<div class="item-top">'
+        + '<input type="checkbox" id="icb-'+sk+'" '+(st.done?'checked':'')+' onclick="toggleItemDone(\''+sk+'\')"> '
+        + '<span class="item-name'+(st.done?' done-item':'')+'" id="iname-'+sk+'">'+esc(item.name)+'</span>'
+        + '<span class="item-qty">'+fmtQty(item.qty,item.unit)+'</span>'
+        + '</div>'
+        + '<textarea class="item-note" id="inote-'+sk+'" rows="1" placeholder="הערה..." onchange="saveItemNote(\''+sk+'\')">'+esc(st.note||'')+'</textarea>'
+        + '</div>';
+    });
+  });
+  return html;
+}
+
+function sendWaTotals() {
+  var tot  = itemTotals();
+  var msg  = '\u{1F4CA} *סיכום כמויות \u2013 ביס של בית*\n\n';
+  var hasAny = false;
+  CAT_ORDER.forEach(function(cat) {
+    var catKeys = Object.keys(tot).filter(function(k){ return tot[k].cat === cat; });
+    if (!catKeys.length) return;
+    catKeys.sort(function(a,b){ return tot[a].name.localeCompare(tot[b].name,'he'); });
+    msg += '*' + CAT_LABELS[cat] + '*\n';
+    catKeys.forEach(function(k){ msg+='\u2022 '+tot[k].name+': *'+fmtQty(tot[k].qty,tot[k].unit)+'*\n'; });
+    msg += '\n';
+    hasAny = true;
+  });
+  if (!hasAny) msg+='(לא ניתן לנתח פריטים)\n';
+  msg+='\nסה"כ '+orders.length+' הזמנות';
+  window.open(waLink(msg),'_blank');
+}
+
+function sendWaPayments() {
+  var unpaid=orders.filter(function(o){return !o.paid;}), paid=orders.filter(function(o){return o.paid;});
+  var tU=unpaid.reduce(function(s,o){return s+(o.amount||0);},0), tP=paid.reduce(function(s,o){return s+(o.amount||0);},0);
+  var msg='\u{1F4B3} *סיכום תשלומים \u2013 ביס של בית*\n\n\u23F3 *טרם שולם ('+unpaid.length+')*\n';
+  unpaid.forEach(function(o){msg+='\u2022 '+o.name+' \u2013 '+o.amount+' \u20AA\n';});
+  msg+='\n\u2705 *שולם ('+paid.length+')*\n';
+  paid.forEach(function(o){msg+='\u2022 '+o.name+' \u2013 '+o.amount+' \u20AA\n';});
+  msg+='\n\u{1F4B0} שולם: '+tP+' \u20AA | ממתין: '+tU+' \u20AA';
+  window.open(waLink(msg),'_blank');
+}
+
+function sendWaPickup() {
+  var g=groupByDay(sorted());
+  var msg='\u{1F5D3}\uFE0F *סיכום איסוף/משלוח \u2013 ביס של בית*\n\n';
+  g.days.forEach(function(day){
+    msg+='\u{1F4C5} *'+day+'*\n';
+    g.byDay[day].forEach(function(o){
+      var type=o.delivery==='delivery'?'\u{1F6F5}':'\u{1F6B6}';
+      var time='';
+      if(o.datetime){var d=new Date(o.datetime);time=' '+pad(d.getHours())+':'+pad(d.getMinutes());}
+      msg+=type+time+' '+o.name+' \u2013 '+o.amount+' \u20AA\n';
+    });
+    msg+='\n';
+  });
+  window.open(waLink(msg),'_blank');
+}
+
+function render() {
+  var total  = orders.reduce(function(s,o){return s+(o.amount||0);},0);
+  var unpaid = orders.filter(function(o){return !o.paid;});
+  var paid   = orders.filter(function(o){return o.paid;});
+  document.getElementById('hdr-cnt').textContent    = orders.length;
+  document.getElementById('hdr-sum').textContent    = '\u20AA'+total.toFixed(0);
+  document.getElementById('cnt-orders').textContent  = orders.length;
+  document.getElementById('cnt-unpaid').textContent  = unpaid.length;
+  document.getElementById('cnt-pickup').textContent  = orders.length;
+  var s = sorted();
+  var ol = document.getElementById('lst-orders');
+  ol.innerHTML = orders.length ? s.map(card).join('') : '<div class="empty"><div class="empty-icon">📭</div>אין הזמנות עדיין.<br>הוסף בלשונית ➕</div>';
+  var pl = document.getElementById('lst-payments');
+  if (!orders.length) { pl.innerHTML='<div class="empty"><div class="empty-icon">💳</div>אין הזמנות</div>'; }
+  else {
+    var h='';
+    if (unpaid.length) { h+='<div class="sec-lbl" style="color:var(--red-text);background:var(--red-bg);">⏳ טרם שולם ('+unpaid.length+')</div>'+unpaid.map(card).join(''); }
+    if (paid.length)   { h+='<div class="sec-lbl" style="color:var(--green-text);background:var(--green-bg);margin-top:8px;">✅ שולם ('+paid.length+')</div>'+paid.map(card).join(''); }
+    pl.innerHTML=h;
+  }
+  var pkl=document.getElementById('lst-pickup');
+  if (!orders.length) { pkl.innerHTML='<div class="empty"><div class="empty-icon">🗓️</div>אין הזמנות</div>'; }
+  else {
+    var g=groupByDay(s);
+    pkl.innerHTML=g.days.map(function(day){
+      return '<div class="sec-lbl" style="color:var(--gold-dark);background:var(--gold-light);">📅 '+day+' ('+g.byDay[day].length+')</div>'+g.byDay[day].map(card).join('');
+    }).join('');
+  }
+  var tot=itemTotals(), keys=Object.keys(tot), ti=document.getElementById('tot-items');
+  if (!orders.length) ti.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">אין הזמנות</div>';
+  else if (!keys.length) ti.innerHTML='<div style="color:var(--text3);font-size:12px;">לא ניתן לנתח פריטים</div>';
+  else ti.innerHTML=renderTotItems(tot, keys);
+  var tAll=total, tP=paid.reduce(function(s,o){return s+(o.amount||0);},0), tU=unpaid.reduce(function(s,o){return s+(o.amount||0);},0);
+  document.getElementById('tot-money').innerHTML=
+    '<div class="sum-row"><span>סה"כ הזמנות</span><span class="qty">'+orders.length+'</span></div>'
+    +'<div class="sum-row"><span>שולם</span><span class="qty" style="color:var(--green)">'+tP.toFixed(0)+' ₪</span></div>'
+    +'<div class="sum-row"><span>ממתין</span><span class="qty" style="color:var(--red)">'+tU.toFixed(0)+' ₪</span></div>'
+    +'<div class="sum-total"><span>סה"כ</span><span class="amt">'+tAll.toFixed(0)+' ₪</span></div>';
+}
+
+function loadAll() {
+  return Promise.all([loadOrders(), loadItemStates()]).then(function() {
+    render();
+  }).catch(function(e) {
+    var ol = document.getElementById('lst-orders');
+    if (ol && ol.innerHTML.includes('טוען')) {
+      ol.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>שגיאה בטעינה.<br>בדוק חיבור לאינטרנט ורענן.</div>';
+    }
+    console.log('loadAll error:', e);
+  });
+}
+
+// Timeout fallback — if still loading after 8 seconds show error
+setTimeout(function() {
+  var ol = document.getElementById('lst-orders');
+  if (ol && ol.innerHTML.includes('טוען')) {
+    ol.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>שגיאה בטעינה.<br>בדוק חיבור לאינטרנט ורענן.</div>';
+  }
+}, 8000);
+
+loadAll();
+setInterval(loadAll, 30000);
+</script>
+</body>
+</html>
