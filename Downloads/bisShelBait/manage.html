@@ -176,24 +176,74 @@ function sbFetch(path, method, body) {
     }
   };
   if (body) opts.body = JSON.stringify(body);
-  return fetch(SB_URL + '/rest/v1/' + path, opts).then(function(r) {
-    if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
-    return r.status === 204 ? null : r.json();
+  
+  var fullUrl = SB_URL + '/rest/v1/' + path;
+  console.log('📡 sbFetch:', method, path);
+  if (body) console.log('   Payload:', body);
+  
+  return fetch(fullUrl, opts).then(function(r) {
+    console.log('   Response status:', r.status);
+    if (!r.ok) {
+      return r.text().then(function(t) {
+        console.error('   Error response:', t);
+        throw new Error('HTTP ' + r.status + ': ' + t);
+      });
+    }
+    if (r.status === 204) {
+      console.log('   Success (no content)');
+      return null;
+    }
+    return r.json().then(function(data) {
+      console.log('   Response data:', data);
+      return data;
+    });
+  }).catch(function(e) {
+    console.error('   Fetch error:', e.message);
+    // Special handling for missing 'address' column error
+    if (e.message.includes("Could not find the 'address' column")) {
+      console.warn('   ⚠️  address column not found in table - will retry without it');
+      return null; // Signal to retry
+    }
+    throw e;
   });
 }
 
 function loadOrders() {
+  console.log('📂 Loading orders from Supabase...');
   return sbFetch('orders?select=*&order=ts.asc').then(function(data) {
+    console.log('✅ Orders loaded:', data ? data.length + ' orders' : 'empty');
     orders = data || [];
     render();
   }).catch(function(e) {
+    console.error('❌ Failed to load orders:', e);
     toast('שגיאה בטעינה: ' + e.message);
   });
 }
 
 function saveOrder(order) {
-  return sbFetch('orders', 'POST', order).then(function() {
+  console.log('🔄 saveOrder called with:', order);
+  return sbFetch('orders', 'POST', order).then(function(result) {
+    if (result === null && order.address) {
+      // Retry without address if it failed due to missing column
+      console.warn('🔄 Retrying without address field...');
+      var orderNoAddr = Object.assign({}, order);
+      delete orderNoAddr.address;
+      return sbFetch('orders', 'POST', orderNoAddr);
+    }
+    console.log('✅ Post succeeded, loading orders...');
     return loadOrders();
+  }).catch(function(e) {
+    if (e.message.includes("address") && order.address) {
+      // Retry without address
+      console.warn('🔄 Retrying without address field...');
+      var orderNoAddr = Object.assign({}, order);
+      delete orderNoAddr.address;
+      return sbFetch('orders', 'POST', orderNoAddr).then(function() {
+        return loadOrders();
+      });
+    }
+    console.error('💥 POST error:', e);
+    throw e;
   });
 }
 
@@ -375,13 +425,27 @@ function parseOrder() {
     }
   }
   var items  = itemLines.join('\n');
+  console.log('📝 Extracted items:', {count: itemLines.length, preview: items.substring(0, 100)});
+  
   if (!name) { toast('לא נמצא שם בהודעה'); return; }
+  
   var order = { id: Date.now(), name:name, items:items||raw.trim(), amount:amount,
                 delivery:isDel?'delivery':'pickup', address:address,
                 datetime:null, paid:false, done:false, ts:Date.now() };
+  
+  console.log('📝 parseOrder extracted:', {name, amount, isDel, address});
+  console.log('💾 Saving order:', order);
+  
   document.getElementById('paste-in').value = '';
   toast('שומר...');
-  saveOrder(order).then(function(){ toast('✅ הזמנה נוספה!'); go('orders'); });
+  saveOrder(order).then(function(){ 
+    console.log('✅ Order saved successfully');
+    toast('✅ הזמנה נוספה!'); 
+    go('orders'); 
+  }).catch(function(e) {
+    console.error('❌ Failed to save order:', e);
+    toast('❌ שגיאה: ' + e.message);
+  });
 }
 
 function addManual() {
@@ -392,12 +456,20 @@ function addManual() {
   if (!name) { toast('חסר שם לקוח'); return; }
   var order = { id: Date.now(), name:name, items:items, amount:amount,
                 delivery:delivMode, address:'', datetime:datetime, paid:false, done:false, ts:Date.now() };
+  console.log('📋 addManual order:', order);
   document.getElementById('m-name').value = '';
   document.getElementById('m-items').value = '';
   document.getElementById('m-amount').value = '';
   document.getElementById('m-datetime').value = '';
   toast('שומר...');
-  saveOrder(order).then(function(){ toast('✅ הזמנה נוספה!'); go('orders'); });
+  saveOrder(order).then(function(){ 
+    console.log('✅ Manual order saved successfully');
+    toast('✅ הזמנה נוספה!'); 
+    go('orders'); 
+  }).catch(function(e) {
+    console.error('❌ Failed to save manual order:', e);
+    toast('❌ שגיאה: ' + e.message);
+  });
 }
 
 function fmtDT(dt) {
