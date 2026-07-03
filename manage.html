@@ -321,14 +321,23 @@ function parseOrder() {
   var amount = totalM ? parseFloat(totalM[1].replace(',','.')) : 0;
   var isDel  = raw.includes('משלוח') && !raw.includes('איסוף עצמי');
 
-  // Extract item lines: "- " lines, "•" bullets, section headers, and מארז header lines
+  // Extract delivery address if present
+  var addrM = raw.match(/כתובת[^:]*:\s*([^\n\r]+)/);
+  var address = addrM ? stripBold(addrM[1].trim()) : '';
+
+  // Extract item lines: "- " lines, "•" bullets, section headers, מארז header lines,
+  // and standalone item lines (NAME – QTY גרם/יח' = PRICE) under a known section header
   var allLines = raw.split('\n');
   var itemLines = [];
+  var inSection = false; // true once we've seen a known section header
+  // Lines we never want to treat as items even if they contain numbers
+  var SKIP_RE = /^(שם|כתובת|דמי משלוח|משלוח|איסוף|הזמנה חדשה|פירוט|סה"כ|תשלום)/;
+
   for (var li = 0; li < allLines.length; li++) {
     var l = allLines[li].trim();
-    var lClean = stripBold(l); // strip bold for matching
+    var lClean = stripBold(l);
 
-    // Regular item line
+    // Regular item line (explicit dash prefix)
     if (lClean.startsWith('- ')) {
       itemLines.push(lClean.replace(/^- /, ''));
       continue;
@@ -336,23 +345,35 @@ function parseOrder() {
     // Bullet line (מארז sub-items)
     if (lClean.startsWith('\u2022') || lClean.startsWith('\u2023') || /^[•·]/.test(lClean)) {
       itemLines.push(lClean);
+      inSection = false; // bullets reset — we're inside a מארז block, not a plain section
       continue;
     }
     // מארז header line e.g. "מארז שבועי – 1 יח' = 180.0 ₪"
     if (lClean.match(/^מארז.+יח'/)) {
       itemLines.push('- ' + lClean);
+      inSection = false;
       continue;
     }
-    // Section header (e.g. "מנות עיקריות", "תוספות", "סלטים וממרחים", "מטבלים בצנצנת", "מארז שבועי")
+    // Known section header (e.g. "מנות עיקריות", "תוספות", "סלטים וממרחים", ...)
     if (detectSectionCat(lClean)) {
       itemLines.push(lClean);
+      inSection = true;
+      continue;
+    }
+    // Standalone item line under a section header — no leading dash required.
+    // Must look like "NAME [– CHOICE] – QTY גרם/יח' [= PRICE ₪]"
+    // and must not be a metadata line (address, delivery fee, total, etc.)
+    if (inSection && !SKIP_RE.test(lClean) && /[\d]/.test(lClean) &&
+        /[–\-]\s*\d+\s*(גרם|יח')/.test(lClean)) {
+      itemLines.push('- ' + lClean);
       continue;
     }
   }
   var items  = itemLines.join('\n');
   if (!name) { toast('לא נמצא שם בהודעה'); return; }
   var order = { id: Date.now(), name:name, items:items||raw.trim(), amount:amount,
-                delivery:isDel?'delivery':'pickup', datetime:null, paid:false, done:false, ts:Date.now() };
+                delivery:isDel?'delivery':'pickup', address:address,
+                datetime:null, paid:false, done:false, ts:Date.now() };
   document.getElementById('paste-in').value = '';
   toast('שומר...');
   saveOrder(order).then(function(){ toast('✅ הזמנה נוספה!'); go('orders'); });
@@ -393,10 +414,12 @@ function card(o) {
     : '<span class="badge b-unpaid">⏳ טרם שולם</span>';
   var dt = fmtDT(o.datetime);
   var db = dt ? '<span class="badge b-dt">📅 '+dt+'</span>' : '';
-  var waText = 'הזמנת '+o.name+'\n'+(o.delivery==='delivery'?'משלוח':'איסוף')+(dt?' – '+dt:'')+'\n'+(o.paid?'שולם':'טרם שולם')+'\n'+o.amount+' ₪\n\n'+o.items;
+  var addrLine = (o.delivery==='delivery' && o.address) ? '\nכתובת: '+o.address : '';
+  var waText = 'הזמנת '+o.name+'\n'+(o.delivery==='delivery'?'משלוח':'איסוף')+(dt?' – '+dt:'')+addrLine+'\n'+(o.paid?'שולם':'טרם שולם')+'\n'+o.amount+' ₪\n\n'+o.items;
   return '<div class="order-card" id="card-'+o.id+'">'
     + '<div class="card-top"><div class="order-name">'+esc(o.name)+'</div><div class="order-amount">'+o.amount+' ₪</div></div>'
     + '<div class="order-meta">'+tb+pb+db+'</div>'
+    + (o.delivery==='delivery' && o.address ? '<div style="font-size:12px;color:#1A56DB;margin-bottom:6px;">📍 '+esc(o.address)+'</div>' : '')
     + (o.items ? '<div class="order-items">'+esc(o.items)+'</div>' : '')
     + '<div class="dt-row"><input type="datetime-local" id="dt-input-'+o.id+'" value="'+(o.datetime||'')+'"><button class="dt-save" onclick="saveDT('+o.id+')">שמור תאריך</button></div>'
     + '<div class="checks-row">'
