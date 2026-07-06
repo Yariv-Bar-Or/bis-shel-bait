@@ -93,6 +93,16 @@ textarea.fi { resize:vertical; min-height:80px; }
 .item-qty { font-weight:700; font-size:13px; color:var(--text); white-space:nowrap; }
 .item-note { width:100%; margin-top:6px; padding:6px 9px; border:1px solid var(--border2); border-radius:7px; font-size:12px; font-family:inherit; color:var(--text); background:var(--bg); outline:none; resize:none; }
 .item-note:focus { border-color:var(--gold); background:white; }
+.bd-toggle { background:none; border:none; cursor:pointer; font-size:13px; color:var(--gold-dark); padding:3px 7px; margin-right:2px; line-height:1; flex-shrink:0; transition:transform .18s; }
+.bd-toggle.open { transform:rotate(180deg); }
+.contrib-list { display:none; margin:7px 4px 2px; padding:4px 10px; background:var(--bg2); border:1px solid var(--border); border-radius:8px; }
+.contrib-list.open { display:block; }
+.contrib-row { display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:0.5px solid var(--border); }
+.contrib-row:last-child { border-bottom:none; }
+.contrib-row input[type=checkbox] { width:16px; height:16px; accent-color:var(--green); cursor:pointer; flex-shrink:0; }
+.contrib-qty { font-weight:700; font-size:12px; color:var(--gold-dark); white-space:nowrap; min-width:62px; }
+.contrib-name { flex:1; font-size:12px; color:var(--text2); }
+.contrib-name.done-item { text-decoration:line-through; color:var(--text3); }
 </style>
 </head>
 <body>
@@ -164,6 +174,7 @@ var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 
 var delivMode = 'pickup';
 var orders = [];
+var deletingIds = {};
 
 function sbFetch(path, method, body) {
   var opts = {
@@ -182,10 +193,10 @@ function sbFetch(path, method, body) {
   });
 }
 
-function loadOrders() {
+function loadOrders(skipRender) {
   return sbFetch('orders?select=*&order=ts.asc').then(function(data) {
-    orders = data || [];
-    render();
+    orders = (data || []).filter(function(o){ return !deletingIds[o.id]; });
+    if (!skipRender) render();
   }).catch(function(e) {
     toast('שגיאה בטעינה: ' + e.message);
   });
@@ -236,14 +247,16 @@ function checkDone(id) {
   var card = document.getElementById('card-'+id);
   if (card) card.classList.add('done-fade');
   var name = o.name;
-  // Mark as being deleted to prevent re-render conflicts
-  o._deleting = true;
+  // Mark as being deleted so a background refresh won't re-add the card mid-fade
+  deletingIds[id] = true;
   setTimeout(function(){
     deleteOrderDB(id).then(function(){
+      delete deletingIds[id];
       toast('🎉 הזמנת '+name+' הושלמה ונמחקה');
     }).catch(function(){
-      o._deleting = false;
+      delete deletingIds[id];
       toast('שגיאה במחיקה');
+      loadOrders();
     });
   }, 380);
 }
@@ -251,10 +264,9 @@ function checkDone(id) {
 function togglePaid(id) {
   var o = orders.find(function(x){ return x.id===id; });
   if (!o) return;
-  o.paid = !o.paid;
   var cb  = document.getElementById('cb-paid-'+id);
+  o.paid = cb ? cb.checked : !o.paid;
   var lbl = document.getElementById('lbl-paid-'+id);
-  if (cb)  cb.checked = o.paid;
   if (lbl) lbl.className = 'chk-lbl' + (o.paid ? ' ck-paid' : '');
   toast(o.paid ? '✅ סומן ששולם' : '↩️ סומן כטרם שולם');
   updateOrder(id, { paid: o.paid });
@@ -264,10 +276,9 @@ function togglePaid(id) {
 function toggleDone(id) {
   var o = orders.find(function(x){ return x.id===id; });
   if (!o) return;
-  o.done = !o.done;
   var cb  = document.getElementById('cb-done-'+id);
+  o.done = cb ? cb.checked : !o.done;
   var lbl = document.getElementById('lbl-done-'+id);
-  if (cb)  cb.checked = o.done;
   if (lbl) lbl.className = 'chk-lbl' + (o.done ? ' ck-done' : '');
   toast(o.done ? '📦 סומן כבוצע' : '↩️ בוטל ביצוע');
   updateOrder(id, { done: o.done });
@@ -300,7 +311,9 @@ function delOrder(id) {
   actions._orig = orig;
 }
 function confirmDel(id) {
-  deleteOrderDB(id).then(function(){ toast('🗑️ נמחק'); });
+  deletingIds[id] = true;
+  deleteOrderDB(id).then(function(){ delete deletingIds[id]; toast('🗑️ נמחק'); })
+    .catch(function(){ delete deletingIds[id]; toast('שגיאה במחיקה'); loadOrders(); });
 }
 function cancelDel(id, btn) {
   var actions = btn.closest('.card-actions');
@@ -312,14 +325,44 @@ function stripBold(s) {
   return s.replace(/\*([^*]+)\*/g, '$1').trim();
 }
 
+// Bullet handling — accept several bullet glyphs consistently everywhere:
+// • (U+2022), ‣ (U+2023), ◦ (U+25E6), ⁃ (U+2043), · (U+00B7)
+var BULLET_RE = /^[\u2022\u2023\u25E6\u2043\u00B7]/;
+function isBullet(s) { return BULLET_RE.test((s || '').trim()); }
+function stripBullet(s) { return (s || '').trim().replace(/^[\u2022\u2023\u25E6\u2043\u00B7]\s*/, ''); }
+
+// Robust amount parsing: handles "93,5" (decimal comma), "1,234.50" (thousands
+// separator + decimal), "1,234" (thousands group) and plain "180".
+function parseAmount(s) {
+  if (s == null) return 0;
+  s = String(s).trim().replace(/[\u20AA\s]/g, '');
+  var hasDot = s.indexOf('.') > -1, hasComma = s.indexOf(',') > -1;
+  if (hasDot && hasComma) return parseFloat(s.replace(/,/g, '')) || 0;
+  if (hasComma) {
+    if (/,\d{3}(?!\d)/.test(s)) return parseFloat(s.replace(/,/g, '')) || 0; // ,ddd → thousands
+    return parseFloat(s.replace(',', '.')) || 0;                              // 93,5 → decimal
+  }
+  return parseFloat(s) || 0;
+}
+
+// Stable, id-safe hash so item-note keys can't collide when two names differ
+// only by punctuation (e.g. en-dash vs hyphen).
+function hashStr(s) {
+  var h = 0;
+  for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+  return (h >>> 0).toString(36);
+}
+
 function parseOrder() {
   var raw = document.getElementById('paste-in').value.trim();
   if (!raw) { toast('הדבק קודם הודעה'); return; }
   var nameM  = raw.match(/שם:\s*([^\n\r]+)/);
   var name   = nameM ? stripBold(nameM[1].trim()) : '';
   var totalM = raw.match(/סה"כ[:\s*:]+\s*([\d.,]+)/);
-  var amount = totalM ? parseFloat(totalM[1].replace(',','.')) : 0;
-  var isDel  = raw.includes('משלוח') && !raw.includes('איסוף עצמי');
+  var amount = totalM ? parseAmount(totalM[1]) : 0;
+  // Prefer an explicit pickup marker anywhere in the message; only fall back to
+  // delivery if the word משלוח appears and איסוף does not.
+  var isDel  = !/איסוף/.test(raw) && /משלוח/.test(raw);
 
   // Extract delivery address if present
   var addrM = raw.match(/כתובת[^:]*:\s*([^\n\r]+)/);
@@ -343,7 +386,7 @@ function parseOrder() {
       continue;
     }
     // Bullet line (מארז sub-items)
-    if (lClean.startsWith('\u2022') || lClean.startsWith('\u2023') || /^[•·]/.test(lClean)) {
+    if (isBullet(lClean)) {
       itemLines.push(lClean);
       inSection = false; // bullets reset — we're inside a מארז block, not a plain section
       continue;
@@ -423,11 +466,11 @@ function card(o) {
     + (o.items ? '<div class="order-items">'+esc(o.items)+'</div>' : '')
     + '<div class="dt-row"><input type="datetime-local" id="dt-input-'+o.id+'" value="'+(o.datetime||'')+'"><button class="dt-save" onclick="saveDT('+o.id+')">שמור תאריך</button></div>'
     + '<div class="checks-row">'
-    +   '<label class="chk-lbl'+(o.paid?' ck-paid':'')+'" id="lbl-paid-'+o.id+'" onclick="togglePaid('+o.id+')">'
-    +     '<input type="checkbox" id="cb-paid-'+o.id+'" '+(o.paid?'checked':'')+' onclick="event.preventDefault()"> שולם'
+    +   '<label class="chk-lbl'+(o.paid?' ck-paid':'')+'" id="lbl-paid-'+o.id+'">'
+    +     '<input type="checkbox" id="cb-paid-'+o.id+'" '+(o.paid?'checked':'')+' onchange="togglePaid('+o.id+')"> שולם'
     +   '</label>'
-    +   '<label class="chk-lbl'+(o.done?' ck-done':'')+'" id="lbl-done-'+o.id+'" onclick="toggleDone('+o.id+')">'
-    +     '<input type="checkbox" id="cb-done-'+o.id+'" '+(o.done?'checked':'')+' onclick="event.preventDefault()"> בוצע'
+    +   '<label class="chk-lbl'+(o.done?' ck-done':'')+'" id="lbl-done-'+o.id+'">'
+    +     '<input type="checkbox" id="cb-done-'+o.id+'" '+(o.done?'checked':'')+' onchange="toggleDone('+o.id+')"> בוצע'
     +   '</label>'
     + '</div>'
     + '<div class="card-actions">'
@@ -447,8 +490,8 @@ function parseBulletItems(lines, startIdx) {
     var l = lines[i].trim();
     if (!l) continue;
     // Stop if we hit a new top-level line (not a bullet)
-    if (!l.startsWith('\u2022') && !l.startsWith('•')) break;
-    var text = l.replace(/^[\u2022•]\s*/, '').trim();
+    if (!isBullet(l)) break;
+    var text = stripBullet(l);
 
     // Detect "תוספות (כלולות): item1, item2" — header + comma-separated items on same line
     var sidesMatch = text.match(/^תוספו?ת[^:]*:\s*(.+)/);
@@ -478,7 +521,7 @@ function parseBulletItems(lines, startIdx) {
 
     // Regular bullet — keep full name including choice (e.g. "קציצות עוף – ברוטב מרוקאי")
     var dishName = text.trim();
-    if (!dishName) return;
+    if (!dishName) continue;
     if (mode === 'salads') salads.push(dishName);
     else if (mode === 'sides') sides.push(dishName);
     else mainDishes.push(dishName);
@@ -512,19 +555,10 @@ function detectSectionCat(line) {
   return null;
 }
 
-// Parse the full dish name from a regular item line, preserving choice/sauce suffix
-// e.g. "קציצות עוף – ברוטב פרסי – 1100 גרם = 93.5 ₪" → "קציצות עוף – ברוטב פרסי"
-function parseItemName(line) {
-  // Pattern: NAME [– CHOICE] – QTY גרם/יח' [= PRICE ₪] [- extra]
-  // We want everything before the last "– NUMBER גרם/יח'"
-  var m = line.match(/^(.*?)\s*[–-]\s*\d+\s*(גרם|יח')/);
-  if (m) return m[1].trim();
-  return line.trim();
-}
-
 function itemTotals() {
   var tot = {};
   orders.forEach(function(o) {
+    _totOrder = o;
     var lines = (o.items||'').split('\n');
     var i = 0;
     var currentCat = 'main'; // default
@@ -541,12 +575,12 @@ function itemTotals() {
         parsed.sides.forEach(function(name)      { add(tot, name, qty * 500, 'גרם', 'sides'); });
         parsed.salads.forEach(function(name)     { add(tot, name, qty,       "יח'", 'salads'); });
         i++;
-        while (i < lines.length && (lines[i].trim().startsWith('\u2022') || lines[i].trim().startsWith('•'))) i++;
+        while (i < lines.length && isBullet(lines[i])) i++;
         continue;
       }
 
       // ── Section header (e.g. "מנות עיקריות", "מארז שבועי" title without quantity) ──
-      if (!line.startsWith('-') && !line.startsWith('\u2022') && !line.startsWith('•')) {
+      if (!line.startsWith('-') && !isBullet(line)) {
         var detectedCat = detectSectionCat(line);
         if (detectedCat) { currentCat = detectedCat; i++; continue; }
       }
@@ -590,11 +624,17 @@ function itemTotals() {
   return tot;
 }
 
+var _totOrder = null;
 function add(tot, name, qty, unit, cat) {
   cat = cat || 'other';
   var key = cat + '__' + name + '__' + unit;
-  if (!tot[key]) tot[key] = { name:name, unit:unit, qty:0, cat:cat };
+  if (!tot[key]) tot[key] = { name:name, unit:unit, qty:0, cat:cat, contribs:{} };
   tot[key].qty += qty;
+  if (_totOrder) {
+    var oid = _totOrder.id;
+    if (!tot[key].contribs[oid]) tot[key].contribs[oid] = { id:oid, name:_totOrder.name, qty:0 };
+    tot[key].contribs[oid].qty += qty;
+  }
 }
 
 function fmtQty(qty, unit) {
@@ -628,16 +668,18 @@ function groupByDay(arr) {
 
 // ── ITEM CHECKLIST STATE (Supabase) ──
 var itemStates = {};
+var expandedItems = {};   // sk -> true when its breakdown is expanded
+var itemContribKeys = {}; // sk -> [contributor keys] (rebuilt each render)
+var contribParent = {};   // contributor key -> parent sk (rebuilt each render)
 
-function safeKey(k) { return k.replace(/[^a-zA-Zא-ת0-9]/g, '_'); }
+function safeKey(k) { return k.replace(/[^a-zA-Zא-ת0-9]/g, '_') + '_' + hashStr(k); }
 
 function loadItemStates() {
   return sbFetch('item_notes?select=*').then(function(data) {
     itemStates = {};
     (data||[]).forEach(function(row) {
-      // Store by both raw key and safeKey to ensure lookup works
+      // row.key is already the safeKey used when the state was saved
       itemStates[row.key] = row;
-      itemStates[safeKey(row.key)] = row;
     });
   }).catch(function(e) { console.log('item_notes load error:', e); });
 }
@@ -649,14 +691,47 @@ function upsertItemState(k, fields) {
   });
 }
 
+// Apply a done state to one checklist key (aggregate or contributor): update
+// memory, the checkbox, the strikethrough, and persist.
+function applyDone(key, done, persist) {
+  if (!itemStates[key]) itemStates[key] = { key: key, done: false, note: '' };
+  itemStates[key].done = done;
+  var cb = document.getElementById('icb-'+key);
+  if (cb) cb.checked = done;
+  var nm = document.getElementById('iname-'+key);
+  if (nm) nm.classList.toggle('done-item', done);
+  if (persist) upsertItemState(key, { done: done, note: itemStates[key].note || '' });
+}
+
+// Aggregate checkbox: mark the dish, and cascade the same state to everyone
+// who ordered it (e.g. checking "2 ק"ג כנפיים" also checks דני and יוסי).
 function toggleItemDone(k) {
-  if (!itemStates[k]) itemStates[k] = { key: k, done: false, note: '' };
-  itemStates[k].done = !itemStates[k].done;
-  var cb  = document.getElementById('icb-'+k);
-  var lbl = document.getElementById('iname-'+k);
-  if (cb)  cb.checked = itemStates[k].done;
-  if (lbl) lbl.className = 'item-name' + (itemStates[k].done ? ' done-item' : '');
-  upsertItemState(k, { done: itemStates[k].done, note: itemStates[k].note || '' });
+  var cb = document.getElementById('icb-'+k);
+  var done = cb ? cb.checked : !(itemStates[k] && itemStates[k].done);
+  applyDone(k, done, true);
+  (itemContribKeys[k] || []).forEach(function(csk){ applyDone(csk, done, true); });
+}
+
+// Per-customer checkbox: mark that person's portion, then keep the parent in
+// sync — the dish shows done only when every contributor is done.
+function toggleContribDone(csk) {
+  var cb = document.getElementById('icb-'+csk);
+  var done = cb ? cb.checked : !(itemStates[csk] && itemStates[csk].done);
+  applyDone(csk, done, true);
+  var sk = contribParent[csk];
+  if (sk) {
+    var kids = itemContribKeys[sk] || [];
+    var allDone = kids.length > 0 && kids.every(function(x){ return itemStates[x] && itemStates[x].done; });
+    applyDone(sk, allDone, true);
+  }
+}
+
+function toggleBreakdown(sk) {
+  expandedItems[sk] = !expandedItems[sk];
+  var bd  = document.getElementById('bd-'+sk);
+  var btn = document.getElementById('bd-btn-'+sk);
+  if (bd)  bd.classList.toggle('open', expandedItems[sk]);
+  if (btn) btn.classList.toggle('open', expandedItems[sk]);
 }
 
 function saveItemNote(k) {
@@ -678,6 +753,8 @@ function renderTotItems(tot, keys) {
   });
 
   var html = '';
+  itemContribKeys = {};
+  contribParent = {};
   CAT_ORDER.forEach(function(cat) {
     var catKeys = byCat[cat];
     if (!catKeys || !catKeys.length) return;
@@ -689,12 +766,35 @@ function renderTotItems(tot, keys) {
       var item = tot[k];
       var sk   = safeKey(k);
       var st   = itemStates[sk] || {};
+
+      // Per-customer breakdown (who ordered how much) — most first
+      var contribList = Object.keys(item.contribs || {}).map(function(oid){ return item.contribs[oid]; });
+      contribList.sort(function(a,b){ return b.qty - a.qty || a.name.localeCompare(b.name,'he'); });
+      var hasBd = contribList.length > 0;
+      var isOpen = !!expandedItems[sk];
+      var cskList = [];
+      var bdHtml = '';
+      contribList.forEach(function(c) {
+        var csk = sk + '_c' + c.id;
+        cskList.push(csk);
+        contribParent[csk] = sk;
+        var cst = itemStates[csk] || {};
+        bdHtml += '<div class="contrib-row">'
+          + '<input type="checkbox" id="icb-'+csk+'" '+(cst.done?'checked':'')+' onchange="toggleContribDone(\''+csk+'\')">'
+          + '<span class="contrib-qty">'+fmtQty(c.qty,item.unit)+'</span>'
+          + '<span class="contrib-name'+(cst.done?' done-item':'')+'" id="iname-'+csk+'">'+esc(c.name)+'</span>'
+          + '</div>';
+      });
+      itemContribKeys[sk] = cskList;
+
       html += '<div class="item-row">'
         + '<div class="item-top">'
-        + '<input type="checkbox" id="icb-'+sk+'" '+(st.done?'checked':'')+' onclick="toggleItemDone(\''+sk+'\')"> '
+        + '<input type="checkbox" id="icb-'+sk+'" '+(st.done?'checked':'')+' onchange="toggleItemDone(\''+sk+'\')"> '
         + '<span class="item-name'+(st.done?' done-item':'')+'" id="iname-'+sk+'">'+esc(item.name)+'</span>'
         + '<span class="item-qty">'+fmtQty(item.qty,item.unit)+'</span>'
+        + (hasBd ? '<button class="bd-toggle'+(isOpen?' open':'')+'" id="bd-btn-'+sk+'" onclick="toggleBreakdown(\''+sk+'\')" title="פירוט לפי לקוח">▾</button>' : '')
         + '</div>'
+        + (hasBd ? '<div class="contrib-list'+(isOpen?' open':'')+'" id="bd-'+sk+'">'+bdHtml+'</div>' : '')
         + '<textarea class="item-note" id="inote-'+sk+'" rows="1" placeholder="הערה..." onchange="saveItemNote(\''+sk+'\')">'+esc(st.note||'')+'</textarea>'
         + '</div>';
     });
@@ -756,25 +856,39 @@ function render() {
   document.getElementById('cnt-orders').textContent  = orders.length;
   document.getElementById('cnt-unpaid').textContent  = unpaid.length;
   document.getElementById('cnt-pickup').textContent  = orders.length;
-  var s = sorted();
-  var ol = document.getElementById('lst-orders');
-  ol.innerHTML = orders.length ? s.map(card).join('') : '<div class="empty"><div class="empty-icon">📭</div>אין הזמנות עדיין.<br>הוסף בלשונית ➕</div>';
-  var pl = document.getElementById('lst-payments');
-  if (!orders.length) { pl.innerHTML='<div class="empty"><div class="empty-icon">💳</div>אין הזמנות</div>'; }
-  else {
-    var h='';
-    if (unpaid.length) { h+='<div class="sec-lbl" style="color:var(--red-text);background:var(--red-bg);">⏳ טרם שולם ('+unpaid.length+')</div>'+unpaid.map(card).join(''); }
-    if (paid.length)   { h+='<div class="sec-lbl" style="color:var(--green-text);background:var(--green-bg);margin-top:8px;">✅ שולם ('+paid.length+')</div>'+paid.map(card).join(''); }
-    pl.innerHTML=h;
+  // Render cards ONLY into the panel that is currently visible. The orders,
+  // payments and pickup panels all render the same orders with the same ids;
+  // if they were all populated at once, getElementById would always resolve to
+  // the (hidden) orders-panel copy, so edits on the other tabs hit the wrong
+  // card. Rendering just the active panel keeps every id unique in the DOM.
+  var activeEl = document.querySelector('.panel.active');
+  var active   = activeEl ? activeEl.id : 'panel-orders';
+  var s   = sorted();
+  var ol  = document.getElementById('lst-orders');
+  var pl  = document.getElementById('lst-payments');
+  var pkl = document.getElementById('lst-pickup');
+  ol.innerHTML = pl.innerHTML = pkl.innerHTML = '';
+
+  if (active === 'panel-orders') {
+    ol.innerHTML = orders.length ? s.map(card).join('') : '<div class="empty"><div class="empty-icon">📭</div>אין הזמנות עדיין.<br>הוסף בלשונית ➕</div>';
+  } else if (active === 'panel-payments') {
+    if (!orders.length) { pl.innerHTML='<div class="empty"><div class="empty-icon">💳</div>אין הזמנות</div>'; }
+    else {
+      var h='';
+      if (unpaid.length) { h+='<div class="sec-lbl" style="color:var(--red-text);background:var(--red-bg);">⏳ טרם שולם ('+unpaid.length+')</div>'+unpaid.map(card).join(''); }
+      if (paid.length)   { h+='<div class="sec-lbl" style="color:var(--green-text);background:var(--green-bg);margin-top:8px;">✅ שולם ('+paid.length+')</div>'+paid.map(card).join(''); }
+      pl.innerHTML=h;
+    }
+  } else if (active === 'panel-pickup') {
+    if (!orders.length) { pkl.innerHTML='<div class="empty"><div class="empty-icon">🗓️</div>אין הזמנות</div>'; }
+    else {
+      var g=groupByDay(s);
+      pkl.innerHTML=g.days.map(function(day){
+        return '<div class="sec-lbl" style="color:var(--gold-dark);background:var(--gold-light);">📅 '+day+' ('+g.byDay[day].length+')</div>'+g.byDay[day].map(card).join('');
+      }).join('');
+    }
   }
-  var pkl=document.getElementById('lst-pickup');
-  if (!orders.length) { pkl.innerHTML='<div class="empty"><div class="empty-icon">🗓️</div>אין הזמנות</div>'; }
-  else {
-    var g=groupByDay(s);
-    pkl.innerHTML=g.days.map(function(day){
-      return '<div class="sec-lbl" style="color:var(--gold-dark);background:var(--gold-light);">📅 '+day+' ('+g.byDay[day].length+')</div>'+g.byDay[day].map(card).join('');
-    }).join('');
-  }
+
   var tot=itemTotals(), keys=Object.keys(tot), ti=document.getElementById('tot-items');
   if (!orders.length) ti.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">אין הזמנות</div>';
   else if (!keys.length) ti.innerHTML='<div style="color:var(--text3);font-size:12px;">לא ניתן לנתח פריטים</div>';
@@ -788,7 +902,7 @@ function render() {
 }
 
 function loadAll() {
-  return Promise.all([loadOrders(), loadItemStates()]).then(function() {
+  return Promise.all([loadOrders(true), loadItemStates()]).then(function() {
     render();
   }).catch(function(e) {
     var ol = document.getElementById('lst-orders');
@@ -808,7 +922,13 @@ setTimeout(function() {
 }, 8000);
 
 loadAll();
-setInterval(loadAll, 30000);
+setInterval(function() {
+  // Don't wipe an input/textarea the user is actively editing (unsaved date,
+  // item note, paste box, manual form). Skip this cycle if something is focused.
+  var ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+  loadAll();
+}, 30000);
 </script>
 </body>
 </html>
