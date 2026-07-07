@@ -469,8 +469,9 @@
       <span id="total-display2">0 ₪</span>
     </div>
     <div class="delivery-row">
-      <button class="del-btn" id="pickup-btn" onclick="setDelivery('pickup')">🚶 איסוף עצמי</button>
-      <button class="del-btn" id="delivery-btn" onclick="setDelivery('delivery')">🛵 משלוח (+20 ₪)</button>
+      <button class="del-btn active" id="pickup-btn" onclick="setDelivery('pickup')">🚶 איסוף עצמי</button>
+      <!-- delivery-btn hidden: uncomment to re-enable -->
+      <!-- <button class="del-btn" id="delivery-btn" onclick="setDelivery('delivery')">🛵 משלוח (+20 ₪)</button> -->
     </div>
   </div><!-- end summary-panel -->
 </div><!-- end summary-bar -->
@@ -480,7 +481,8 @@
   <div class="modal-box" dir="rtl">
     <div class="modal-title">איך תרצה לקבל את ההזמנה?</div>
     <button class="modal-btn" onclick="pickDeliveryAndSend('pickup')">🚶 איסוף עצמי<br><span>משלמה המלך 4</span></button>
-    <button class="modal-btn" onclick="pickDeliveryAndSend('delivery')">🛵 משלוח<br><span>תוספת 20 ₪</span></button>
+    <!-- delivery option hidden: uncomment to re-enable -->
+    <!-- <button class="modal-btn" onclick="pickDeliveryAndSend('delivery')">🛵 משלוח<br><span>תוספת 20 ₪</span></button> -->
     <button class="modal-cancel" onclick="document.getElementById('delivery-modal').style.display='none'">ביטול</button>
   </div>
 </div>
@@ -616,7 +618,7 @@ menu.forEach(sec => {
 
 const quantities = {};
 const choices = {}; // { itemId: "persian" | "moroccan" | "beyond" | "regular" }
-let deliveryMode = null;
+let deliveryMode = "pickup"; // delivery hidden: set to null to re-enable modal
 
 // ── RENDER ──────────────────────────────────────────────────────────────────
 
