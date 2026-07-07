@@ -548,6 +548,25 @@ var SECTION_MAP = [
   { re: /מארז/,            cat: 'main'       }  // מארז items split into their own cats inside
 ];
 
+// ── FIXED-RECIPE PACKAGES ────────────────────────────────────────────────────
+// Some מארז items always break down into the same fixed components (unlike
+// מארז שבועי, whose contents are listed as bullets under it and vary per
+// order). Add new fixed packages here: { test: <regex on the package name>,
+// items: [{ name, qty (per 1 יח'), unit, cat }] }.
+var PACKAGE_RECIPES = [
+  { test: /סלטים/, items: [
+      { name: 'כרוב לבן',      qty: 500, unit: 'גרם', cat: 'salads' },
+      { name: 'מטבוחה',        qty: 250, unit: 'גרם', cat: 'salads' },
+      { name: 'חציל על האש',   qty: 250, unit: 'גרם', cat: 'salads' }
+  ] }
+];
+function findPackageRecipe(name) {
+  for (var i = 0; i < PACKAGE_RECIPES.length; i++) {
+    if (PACKAGE_RECIPES[i].test.test(name)) return PACKAGE_RECIPES[i].items;
+  }
+  return null;
+}
+
 function detectSectionCat(line) {
   for (var si = 0; si < SECTION_MAP.length; si++) {
     if (SECTION_MAP[si].re.test(line)) return SECTION_MAP[si].cat;
@@ -570,6 +589,16 @@ function itemTotals() {
       var mararMatch = line.replace(/^-\s*/,'').match(/^מארז.+?[–-]\s*(\d+)\s*יח'/);
       if (mararMatch) {
         var qty = parseInt(mararMatch[1]);
+        var mararName = line.replace(/^-\s*/,'').split(/[–-]/)[0].trim();
+        var recipe = findPackageRecipe(mararName);
+        if (recipe) {
+          // Fixed-recipe package (e.g. מארז סלטים) — same components every time,
+          // scaled by however many units were ordered. No bullets to read below it.
+          recipe.forEach(function(part){ add(tot, part.name, part.qty * qty, part.unit, part.cat); });
+          i++;
+          continue;
+        }
+        // Dynamic package (e.g. מארז שבועי) — contents are listed as bullets under it
         var parsed = parseBulletItems(lines, i + 1);
         parsed.mainDishes.forEach(function(name) { add(tot, name, qty * 500, 'גרם', 'main'); });
         parsed.sides.forEach(function(name)      { add(tot, name, qty * 500, 'גרם', 'sides'); });
