@@ -1260,19 +1260,18 @@ function sendOrder() {
       msg += `- ${item.name}${choiceLabel} – ${qty} ${unit} = ${cost} ₪\n`;
       // Weekly bundle details
       if (item.id === "w1") {
-        const mains = choices["w1_mains"] || [];
-        mains.forEach(mid => {
-          let mainLine = `   • ${weeklyMainNames[mid]}`;
-          if (choices["w1_beyond_" + mid]) mainLine += choices["w1_beyond_" + mid] === "beyond" ? " (ביונד)" : " (בשר רגיל)";
-          if (choices["w1_protein_" + mid]) mainLine += choices["w1_protein_" + mid] === "chicken" ? " (עוף)" : " (טופו)";
-          if (choices["w1_couscous_" + mid]) mainLine += choices["w1_couscous_" + mid] === "chicken" ? " (עם עוף)" : " (צמחוני)";
+        const selections = choices["w1_selections"] || [];
+        msg += `   • מנות עיקריות:\n`;
+        selections.forEach(sel => {
+          let mainLine = `      – ${weeklyMainNames[sel.id] || sel.id}`;
+          if (choices["w1_beyond_" + sel.key]) mainLine += choices["w1_beyond_" + sel.key] === "beyond" ? " (ביונד +15₪)" : " (בשר רגיל)";
+          if (choices["w1_protein_" + sel.key]) mainLine += choices["w1_protein_" + sel.key] === "chicken" ? " (עוף)" : " (טופו)";
+          if (choices["w1_couscous_" + sel.key]) mainLine += choices["w1_couscous_" + sel.key] === "chicken" ? " (עם עוף)" : " (צמחוני)";
           msg += mainLine + "\n";
         });
         const mash = choices["w1_mash"];
-        if (mash) msg += `   • פירה: ${mash === "dairy" ? "חלבי" : "פרווה"}\n`;
-        msg += `   • אורז לבן\n`;
-        msg += `   • פירה: ${choices["w1_mash"] === "dairy" ? "חלבי" : "פרווה"}\n`;
-        msg += `   • חציל על האש בטחינה\n`;
+        msg += `   • תוספות (כלולות): אורז לבן, פירה ${mash === "dairy" ? "חלבי" : "פרווה"}\n`;
+        msg += `   • סלט (כלול): חציל על האש בטחינה\n`;
       }
     });
   });
