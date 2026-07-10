@@ -327,9 +327,9 @@ function stripBold(s) {
 
 // Bullet handling — accept several bullet glyphs consistently everywhere:
 // • (U+2022), ‣ (U+2023), ◦ (U+25E6), ⁃ (U+2043), · (U+00B7)
-var BULLET_RE = /^[\u2022\u2023\u25E6\u2043\u00B7]/;
+var BULLET_RE = /^[\u2022\u2023\u25E6\u2043\u00B7\u2013\u2014]/;
 function isBullet(s) { return BULLET_RE.test((s || '').trim()); }
-function stripBullet(s) { return (s || '').trim().replace(/^[\u2022\u2023\u25E6\u2043\u00B7]\s*/, ''); }
+function stripBullet(s) { return (s || '').trim().replace(/^[\u2022\u2023\u25E6\u2043\u00B7\u2013\u2014]\s*/, ''); }
 
 // Robust amount parsing: handles "93,5" (decimal comma), "1,234.50" (thousands
 // separator + decimal), "1,234" (thousands group) and plain "180".
@@ -516,17 +516,31 @@ function parseBulletItems(lines, startIdx) {
     }
 
     // Plain section headers without items on same line
-    if (text.match(/^תוספו?ת/)) { mode = 'sides'; continue; }
-    if (text.match(/^סלט/))     { mode = 'salads'; continue; }
+    if (text.match(/^תוספו?ת/))     { mode = 'sides'; continue; }
+    if (text.match(/^סלט/))         { mode = 'salads'; continue; }
+    if (text.match(/^מנות עיקריות/)) { mode = 'main'; continue; }
 
     // Regular bullet — keep full name including choice (e.g. "קציצות עוף – ברוטב מרוקאי")
-    var dishName = text.trim();
+    var dishName = pkgDishName(text.trim());
     if (!dishName) continue;
     if (mode === 'salads') salads.push(dishName);
     else if (mode === 'sides') sides.push(dishName);
     else mainDishes.push(dishName);
   }
   return { mainDishes: mainDishes, sides: sides, salads: salads };
+}
+
+// Some dishes are listed inside a מארז breakdown under a shorthand name that
+// differs from their real/full name elsewhere (e.g. the מארז version of
+// "מסאחן עוף" has no rice and a different preparation). Map those here.
+var PKG_DISH_RENAME = [
+  { test: /^מסאחן עוף$/, name: 'מסחאן עוף מפורק עם שקדים קלויים (ללא אורז)' }
+];
+function pkgDishName(name) {
+  for (var i = 0; i < PKG_DISH_RENAME.length; i++) {
+    if (PKG_DISH_RENAME[i].test.test(name)) return PKG_DISH_RENAME[i].name;
+  }
+  return name;
 }
 
 // ── CATEGORY HELPERS ──────────────────────────────────────────────────────────
