@@ -400,6 +400,27 @@
     font-size: 14px; font-family: inherit; cursor: pointer; text-align: center;
   }
 
+  /* WELCOME / ABOUT */
+  .about-box { max-height: 85vh; overflow-y: auto; text-align: right; }
+  .about-h {
+    font-size: 20px; font-weight: 700; color: var(--text);
+    text-align: center; margin-bottom: 16px; line-height: 1.4;
+  }
+  .about-lead { font-size: 14.5px; line-height: 1.8; color: var(--text2); margin-bottom: 12px; }
+  .about-sep { height: 1px; background: var(--border); margin: 18px 0; }
+  .about-sec { margin-bottom: 16px; }
+  .about-sec h4 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .about-sec p { font-size: 14px; line-height: 1.7; color: var(--text2); }
+  .about-card {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 10px; padding: 14px; margin-bottom: 16px;
+  }
+  .about-card h4 { color: var(--gold-dark); }
+  .modal-btn.primary {
+    background: var(--text); color: var(--gold-light); border-color: var(--text);
+  }
+  .modal-btn.primary:hover { background: var(--gold-dark); border-color: var(--gold-dark); color: #fff; }
+
   @media (max-width: 400px) {
     .qty-input { width: 46px; }
     .qty-btn { width: 30px; }
@@ -477,6 +498,50 @@
 </div><!-- end summary-bar -->
 
 <!-- Delivery modal -->
+<!-- FIRST VISIT -->
+<div class="modal-overlay" id="welcome-modal">
+  <div class="modal-box" dir="rtl">
+    <div class="modal-title">פעם ראשונה אצלנו?</div>
+    <button class="modal-btn primary" onclick="showAbout()">כן, ספרו לי</button>
+    <button class="modal-btn" onclick="closeWelcome()">לא, ישר לתפריט</button>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<div class="modal-overlay" id="about-modal">
+  <div class="modal-box about-box" dir="rtl">
+    <div class="about-h">ברוכים הבאים לביס של בית 🏠</div>
+
+    <p class="about-lead">אני איליי, סטודנטית שנה ג' לעבודה סוציאלית ואוהבת לבשל מאז ומתמיד.</p>
+    <p class="about-lead">כאן תמצאו אוכל ביתי, טרי ומנחם, בהזמנה אישית שתחזיק לכם כמה ימים קדימה — ותיתן לכם שקט מבישולים.</p>
+    <p class="about-lead">כל המנות מבוססות על חומרי גלם איכותיים: שמן זית, ציר בקר או עוף, שום קונפי, לימון כבוש, חרדל בהכנה ביתית ועוד.</p>
+
+    <div class="about-sep"></div>
+
+    <div class="about-sec">
+      <h4>איך זה עובד</h4>
+      <p>בוחרים מנות מהתפריט ומזמינים לפי משקל — בדיוק כמה שצריך. את ההזמנה שולחים בוואטסאפ בלחיצה אחת.</p>
+    </div>
+
+    <div class="about-card">
+      <h4>⭐ המארז השבועי — 180 ₪</h4>
+      <p style="font-size:14px;line-height:1.7;color:var(--text2);">4 מנות עיקריות לבחירתכם, 2 תוספות וסלט.<br>מספיק ל-4 עד 7 מנות. הדרך המשתלמת ביותר להזמין.</p>
+    </div>
+
+    <div class="about-sec">
+      <h4>מתי</h4>
+      <p>בכל שבוע נעדכן על פתיחת ההזמנות לקראת מוצ"ש, והאספקה בתחילת השבוע שאחרי.<br>מדי פעם יש גם ספיישלים מיוחדים — שווה לעקוב בקבוצה.</p>
+    </div>
+
+    <div class="about-sec">
+      <h4>איסוף ותשלום</h4>
+      <p>איסוף עצמי מרחוב שלמה המלך 4. תשלום במזומן או בפייבוקס.</p>
+    </div>
+
+    <button class="modal-btn primary" style="margin-top:8px;" onclick="closeAbout()">יאללה, לתפריט</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="delivery-modal" onclick="closeDeliveryModal(event)">
   <div class="modal-box" dir="rtl">
     <div class="modal-title">איך תרצה לקבל את ההזמנה?</div>
@@ -1444,10 +1509,28 @@ function toggleWeeklyDetails(e) {
   btn.setAttribute("aria-expanded", !isOpen);
 }
 
+// ── WELCOME / ABOUT ───────────────────────────────────────────────────────────
+function openWelcome() {
+  document.getElementById("welcome-modal").classList.add("open");
+}
+function closeWelcome() {
+  document.getElementById("welcome-modal").classList.remove("open");
+}
+function showAbout() {
+  document.getElementById("welcome-modal").classList.remove("open");
+  const about = document.getElementById("about-modal");
+  about.classList.add("open");
+  about.querySelector(".modal-box").scrollTop = 0;
+}
+function closeAbout() {
+  document.getElementById("about-modal").classList.remove("open");
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 renderAll();
 updateSummary();
 setupScrollSpy();
+openWelcome();
 
 </script>
 <!-- ORDER NOTE MODAL -->
