@@ -537,25 +537,25 @@ const menu = [
     minGrams: 800,
     minLabel: "מינימום הזמנה לכל מנה: 800 גרם | מחיר ל-100 גרם",
     items: [
-      { id: "m1",  name: "מסחאן עוף מפורק עם שקדים קלויים על אורז לבן", price: 8.5 },
-      { id: "m2",  name: "מסחאן עוף מפורק עם שקדים קלויים (ללא אורז)", price: 11 },
-      { id: "m3",  name: "עוף בתנור עם תפוחי אדמה ובטטה", price: 7.5, outOfStock: true },
+      { id: "m1",  name: "מסחאן עוף מפורק עם שקדים קלויים על אורז לבן", price: 8.5, outOfStock: true },
+      { id: "m2",  name: "מסחאן עוף מפורק עם שקדים קלויים (ללא אורז)", price: 11, outOfStock: true },
+      { id: "m3",  name: "עוף בתנור עם תפוחי אדמה ובטטה", price: 7.5 },
       { id: "m4",  name: "עוף ברוטב פרסי", price: 8, outOfStock: true },
-      { id: "m5a", name: "קוסקוס עם עוף וירקות", price: 8, note: "המשקל מחושב לפי המרק, בנוסף מגיע עם תוספת של 50% קוסקוס" },
-      { id: "m5b", name: "קוסקוס ירקות (ללא עוף)", price: 7.5, veg: true, vegan: true, note: "המשקל מחושב לפי המרק, בנוסף מגיע עם תוספת של 50% קוסקוס" },
+      { id: "m5a", name: "קוסקוס עם עוף וירקות", price: 8, outOfStock: true, note: "המשקל מחושב לפי המרק, בנוסף מגיע עם תוספת של 50% קוסקוס" },
+      { id: "m5b", name: "קוסקוס ירקות (ללא עוף)", price: 7.5, veg: true, vegan: true, outOfStock: true, note: "המשקל מחושב לפי המרק, בנוסף מגיע עם תוספת של 50% קוסקוס" },
       { id: "m6",  name: "כנפיים ברוטב מתקתק-פיקנטי", price: 6, outOfStock: true },
-      { id: "m7",  name: "קציצות עוף", price: 8.5, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי", outOfStock: true },
-      { id: "m7v", name: "קציצות טופו", price: 8.5, veg: true, vegan: true, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי", outOfStock: true },
-      { id: "m7x", name: "קציצות ביונד מיט", price: 9.5, veg: true, vegan: true, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי", outOfStock: true },
-      { id: "m8",  name: "בורקס בשר עם צנוברים", price: 9, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+15 ₪) = טבעוני", checkbox: "beyond_choice" },
-      { id: "m9",  name: "פסטה בולונז", price: 6.5, veganOption: "beyond", note: "ניתן עם ביונד (+15 ₪) = טבעוני", checkbox: "beyond_choice", outOfStock: true },
-      { id: "m10", name: "פאי רועים", price: 8.5, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+15 ₪) = טבעוני", checkbox: "beyond_choice_with_potato" },
+      { id: "m7",  name: "קציצות עוף", price: 8.5, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי" },
+      { id: "m7v", name: "קציצות צמחוניות/טבעוניות", price: 8.5, veg: true, vegan: true, veganOption: "beyond", checkbox: "sauce_tofu_beyond", note: "לבחור חלבון: טופו / ביונד (+15 ₪) | לבחור רוטב: פרסי / מרוקאי" },
+      { id: "m7x", name: "קציצות ביונד מיט (מוזג לתוך קציצות צמחוניות/טבעוניות)", price: 9.5, veg: true, vegan: true, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי", outOfStock: true },
+      { id: "m8",  name: "בורקס בשר עם צנוברים", price: 9, outOfStock: true, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+15 ₪) = טבעוני", checkbox: "beyond_choice" },
+      { id: "m9",  name: "פסטה בולונז", price: 6.5, veganOption: "beyond", note: "ניתן עם ביונד (+15 ₪) = טבעוני", checkbox: "beyond_choice" },
+      { id: "m10", name: "פאי רועים", price: 8.5, outOfStock: true, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+15 ₪) = טבעוני", checkbox: "beyond_choice_with_potato" },
       { id: "m11", name: "דג מרוקאי", price: 8 },
       { id: "m12", name: "קציצות דג", price: 9, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי", outOfStock: true },
       { id: "m13", name: "דג סלמון בחמאת עגבניות ויין לבן", price: 15, outOfStock: true },
       { id: "m14", name: "פסטל יווני במילוי חצילים וגבינות", price: 8, veg: true, outOfStock: true },
-      { id: "m15", name: "מוקפץ תאילנדי", price: 7, checkbox: "thai_protein", note: "לבחור: עוף / טופו (טבעוני)" },
-      { id: "m16", name: "פאד קפאו על מצע של אורז לבן", price: 8, veganOption: "beyond", checkbox: "pad_kapao", note: "לבחור: ביצת עין / ביצת עין הפוכה | ניתן עם ביונד (+15 ₪) = טבעוני", outOfStock: true },
+      { id: "m15", name: "מוקפץ תאילנדי", price: 7, outOfStock: true, checkbox: "thai_protein", note: "לבחור: עוף / טופו (טבעוני)" },
+      { id: "m16", name: "פאד קפאו על מצע של אורז לבן", price: 8, veganOption: "beyond", checkbox: "pad_kapao", note: "לבחור: ביצת עין / ביצת עין הפוכה | ניתן עם ביונד (+15 ₪) = טבעוני" },
       { id: "m17", name: "שניצל של בית", price: 7.5, outOfStock: true }
     ]
   },
@@ -569,7 +569,8 @@ const menu = [
       { id: "s2", name: "אורז עם אטריות", price: 3, veg: true, vegan: true, outOfStock: true },
       { id: "s3", name: "תפוחי אדמה בתנור", price: 3, veg: true, vegan: true, outOfStock: true },
       { id: "s4", name: "מיקס תפוח אדמה ובטטה", price: 4, veg: true, vegan: true, outOfStock: true },
-      { id: "s5", name: "פירה", price: 5, veg: true, checkbox: "dairy_parve" },
+      { id: "s9", name: "מיקס ירקות בתנור", price: 4, veg: true, vegan: true },
+      { id: "s5", name: "פירה", price: 5, veg: true, checkbox: "dairy_parve", outOfStock: true },
       { id: "s6", name: "מג'דרה", price: 5, veg: true, vegan: true },
       { id: "s7", name: "בורגול עם בצל", price: 4, veg: true, vegan: true, outOfStock: true },
       { id: "s8", name: "חלת שישי", price: 20, unit: "יח'", fixed: true, veg: true, minUnits: 1, outOfStock: true }
@@ -582,12 +583,12 @@ const menu = [
     step: 50,
     minLabel: "מינימום הזמנה לכל סלט: 250 גרם | מחיר ל-100 גרם | קפיצות 50 גרם",
     items: [
-      { id: "sa1", name: "חציל על האש בטחינה", price: 8, veg: true },
-      { id: "sa2", name: "סלט ביצים", price: 6, veg: true },
+      { id: "sa1", name: "חציל על האש בטחינה", price: 8, veg: true, outOfStock: true },
+      { id: "sa2", name: "סלט ביצים", price: 6, veg: true, outOfStock: true },
       { id: "sa3", name: "מטבוחה", price: 8.5, veg: true, vegan: true },
       { id: "sa4", name: "חמוצים", price: 5, veg: true, vegan: true },
       { id: "sa5", name: "סלט כרוב לבן", price: 3, veg: true, vegan: true },
-      { id: "sa6", name: "סלט כרוב סגול במיונז", price: 5, veg: true, vegan: true },
+      { id: "sa6", name: "סלט כרוב סגול במיונז", price: 5, veg: true, vegan: true, outOfStock: true },
       { id: "sa7", name: "ממרח פטה כבד", price: 7, minGrams: 500, note: "מינימום 500 גרם", outOfStock: true },
       { id: "sa8", name: "מארז סלטים", price: 50, fixed: true, veg: true, vegan: true, note: "500 גרם סלט כרוב לבן, 250 גרם מטבוחה, 250 גרם חציל על האש בטחינה", outOfStock: true }
     ]
@@ -598,7 +599,7 @@ const menu = [
     minGrams: 0,
     minLabel: "22 ₪ לצנצנת (כ-150 גרם) | 4 צנצנות ומעלה – 20 ₪ ליחידה",
     items: [
-      { id: "c1", name: "ריבת פלפל חריף",                      price: 22, fixed: true, veg: true, vegan: true },
+      { id: "c1", name: "ריבת פלפל חריף",                      price: 22, fixed: true, veg: true, vegan: true, outOfStock: true },
       { id: "c2", name: "ארטישוק קונפי עם פרמז'ן",              price: 22, fixed: true, veg: true, outOfStock: true },
       { id: "c3", name: "חמאת שום, עשבי תיבול ופרמז'ן",        price: 22, fixed: true, veg: true, outOfStock: true },
       { id: "c4", name: "לימון כבוש",                           price: 22, fixed: true, veg: true, vegan: true, outOfStock: true },
@@ -607,6 +608,11 @@ const menu = [
     ]
   }
 ];
+
+// A section is shown only if at least one of its items is still available
+function sectionHasVisibleItems(section) {
+  return section.items.some(item => !item.outOfStock);
+}
 
 // Build item lookup
 const itemMap = {};
@@ -630,7 +636,7 @@ function renderAll() {
   const nav = document.getElementById("cat-nav");
   if (nav) {
     nav.innerHTML = "";
-    menu.forEach(section => {
+    menu.filter(sectionHasVisibleItems).forEach(section => {
       const tab = document.createElement("div");
       tab.className = "cat-tab";
       tab.dataset.sectionId = section.id;
@@ -642,7 +648,7 @@ function renderAll() {
     if (first) first.classList.add('active');
   }
 
-  menu.forEach(section => {
+  menu.filter(sectionHasVisibleItems).forEach(section => {
     const secDiv = document.createElement("div");
     secDiv.className = "section";
     secDiv.id = "sec-" + section.id;
@@ -677,7 +683,7 @@ function buildItemEl(item, section) {
     const numBundles = qty;
     const totalSlots = numBundles * 4;
     const selections = choices["w1_selections"] || [];
-    return selections.length < totalSlots || !choices["w1_mash"];
+    return selections.length < totalSlots;
   })();
   const choiceNeeded = (hasQty && item.checkbox && !choices[item.id]) || weeklyChoiceNeeded;
 
@@ -752,6 +758,20 @@ function buildItemEl(item, section) {
         <button class="choice-btn${curPotato === 'parve' ? ' selected' : ''}" onclick="setChoice('${item.id}_potato','parve')">פירה פרווה</button>
       </div>
       <div class="choice-required" style="${curPotato ? 'display:none' : ''}">⚠️ יש לבחור פירה חלבי או פרווה</div>`;
+  } else if (hasQty && item.checkbox === "sauce_tofu_beyond") {
+    const curProtein = choices[item.id] || null;
+    const curSauce = choices[item.id + "_sauce"] || null;
+    choiceHTML = `
+      <div class="item-choices" style="margin-bottom:4px;">
+        <button class="choice-btn${curProtein === 'tofu' ? ' selected' : ''}" onclick="setChoice('${item.id}','tofu')">🌿 טופו</button>
+        <button class="choice-btn${curProtein === 'beyond' ? ' selected' : ''}" onclick="setChoice('${item.id}','beyond')">⚡ ביונד +15₪</button>
+      </div>
+      <div class="choice-required" style="${curProtein ? 'display:none' : ''}">⚠️ יש לבחור טופו או ביונד</div>
+      <div class="item-choices" style="margin-top:6px;">
+        <button class="choice-btn${curSauce === 'persian' ? ' selected' : ''}" onclick="setChoice('${item.id}_sauce','persian')">פרסי</button>
+        <button class="choice-btn${curSauce === 'moroccan' ? ' selected' : ''}" onclick="setChoice('${item.id}_sauce','moroccan')">מרוקאי</button>
+      </div>
+      <div class="choice-required" style="${curSauce ? 'display:none' : ''}">⚠️ יש לבחור רוטב</div>`;
   } else if (hasQty && item.checkbox === "thai_protein") {
     const cur = choices[item.id];
     choiceHTML = `
@@ -810,12 +830,12 @@ function buildItemEl(item, section) {
           const numBundles = quantities['w1'] || 1;
           const totalSlots = numBundles * 4;
           const weeklyMains = [
-            { id: 'w1_m1',  name: 'מסאחן עוף' },
-            { id: 'w1_m5a', name: 'קוסקוס', hasCouscous: true },
-            { id: 'w1_m8',  name: 'בורקס בשר', hasBeyond: true },
-            { id: 'w1_m10', name: 'פאי רועים', hasBeyond: true },
+            { id: 'w1_m3',  name: 'עוף בתנור עם תפוחי אדמה ובטטה' },
+            { id: 'w1_m7',  name: 'קציצות עוף', hasSauce: true },
+            { id: 'w1_m7v', name: 'קציצות צמחוניות/טבעוניות', hasTofuBeyond: true, hasSauce: true },
+            { id: 'w1_m9',  name: 'פסטה בולונז', hasBeyond: true },
             { id: 'w1_m11', name: 'דג מרוקאי' },
-            { id: 'w1_m15', name: 'מוקפץ תאילנדי', hasProtein: true },
+            { id: 'w1_m16', name: 'פאד קפאו', hasBeyond: true, hasEgg: true },
           ];
           // selections: array of {id, key} where key = id + '_' + index for duplicates
           const selections = choices['w1_selections'] || [];
@@ -824,7 +844,7 @@ function buildItemEl(item, section) {
           const dishCounts = {};
           selections.forEach(s => { dishCounts[s.id] = (dishCounts[s.id] || 0) + 1; });
 
-          let html = `<div class="item-note" style="margin-bottom:8px;">* בחר/י ${totalSlots} מנות עיקריות. פירה + אורז + חציל על האש בטחינה מגיעים מובנים.</div>`;
+          let html = `<div class="item-note" style="margin-bottom:8px;">* בחר/י ${totalSlots} מנות עיקריות. אורז + מיקס ירקות בתנור + מטבוחה מגיעים מובנים.</div>`;
           html += `<div style="font-size:13px;color:var(--text2);margin-bottom:6px;">בחר/י ${totalSlots} מנות עיקריות (${count}/${totalSlots}):</div>`;
 
           weeklyMains.forEach(m => {
@@ -847,34 +867,33 @@ function buildItemEl(item, section) {
                 const label = timesSelected > 1 ? ` (מנה ${i + 1})` : '';
                 if (m.hasBeyond) {
                   const val = choices['w1_beyond_' + sel.key] || '';
-                  const potatoVal = choices['w1_potato_' + sel.key] || '';
                   html += `<div style="padding-right:8px;margin-bottom:4px;font-size:13px;">${m.name}${label}:
                     <button class="choice-btn${val === 'meat' ? ' selected' : ''}" onclick="setChoice('w1_beyond_${sel.key}','meat')">🥩 בשר</button>
-                    <button class="choice-btn${val === 'beyond' ? ' selected' : ''}" onclick="setChoice('w1_beyond_${sel.key}','beyond')">⚡ ביונד</button>
-                    ${!val ? '<span class="choice-required" style="display:inline;">⚠️</span>' : ''}
-                  </div>`;
-                  // פאי רועים — גם בחירת פירה
-                  if (sel.id === 'w1_m10') {
-                    html += `<div style="padding-right:8px;margin-bottom:4px;font-size:13px;">פירה עם ${m.name}${label}:
-                      <button class="choice-btn${potatoVal === 'dairy' ? ' selected' : ''}" onclick="setChoice('w1_potato_${sel.key}','dairy')">חלבי</button>
-                      <button class="choice-btn${potatoVal === 'parve' ? ' selected' : ''}" onclick="setChoice('w1_potato_${sel.key}','parve')">פרווה</button>
-                      ${!potatoVal ? '<span class="choice-required" style="display:inline;">⚠️</span>' : ''}
-                    </div>`;
-                  }
-                }
-                if (m.hasCouscous) {
-                  const val = choices['w1_couscous_' + sel.key] || '';
-                  html += `<div style="padding-right:8px;margin-bottom:4px;font-size:13px;">${m.name}${label}:
-                    <button class="choice-btn${val === 'chicken' ? ' selected' : ''}" onclick="setChoice('w1_couscous_${sel.key}','chicken')">🍗 עוף</button>
-                    <button class="choice-btn${val === 'vegan' ? ' selected' : ''}" onclick="setChoice('w1_couscous_${sel.key}','vegan')">🌱 צמחוני</button>
+                    <button class="choice-btn${val === 'beyond' ? ' selected' : ''}" onclick="setChoice('w1_beyond_${sel.key}','beyond')">⚡ ביונד +15₪</button>
                     ${!val ? '<span class="choice-required" style="display:inline;">⚠️</span>' : ''}
                   </div>`;
                 }
-                if (m.hasProtein) {
-                  const val = choices['w1_protein_' + sel.key] || '';
+                if (m.hasTofuBeyond) {
+                  const val = choices['w1_beyond_' + sel.key] || '';
                   html += `<div style="padding-right:8px;margin-bottom:4px;font-size:13px;">${m.name}${label}:
-                    <button class="choice-btn${val === 'chicken' ? ' selected' : ''}" onclick="setChoice('w1_protein_${sel.key}','chicken')">🍗 עוף</button>
-                    <button class="choice-btn${val === 'tofu' ? ' selected' : ''}" onclick="setChoice('w1_protein_${sel.key}','tofu')">🌱 טופו</button>
+                    <button class="choice-btn${val === 'tofu' ? ' selected' : ''}" onclick="setChoice('w1_beyond_${sel.key}','tofu')">🌿 טופו</button>
+                    <button class="choice-btn${val === 'beyond' ? ' selected' : ''}" onclick="setChoice('w1_beyond_${sel.key}','beyond')">⚡ ביונד +15₪</button>
+                    ${!val ? '<span class="choice-required" style="display:inline;">⚠️</span>' : ''}
+                  </div>`;
+                }
+                if (m.hasSauce) {
+                  const val = choices['w1_sauce_' + sel.key] || '';
+                  html += `<div style="padding-right:8px;margin-bottom:4px;font-size:13px;">רוטב ל${m.name}${label}:
+                    <button class="choice-btn${val === 'persian' ? ' selected' : ''}" onclick="setChoice('w1_sauce_${sel.key}','persian')">פרסי</button>
+                    <button class="choice-btn${val === 'moroccan' ? ' selected' : ''}" onclick="setChoice('w1_sauce_${sel.key}','moroccan')">מרוקאי</button>
+                    ${!val ? '<span class="choice-required" style="display:inline;">⚠️</span>' : ''}
+                  </div>`;
+                }
+                if (m.hasEgg) {
+                  const val = choices['w1_egg_' + sel.key] || '';
+                  html += `<div style="padding-right:8px;margin-bottom:4px;font-size:13px;">ביצה ל${m.name}${label}:
+                    <button class="choice-btn${val === 'sunny' ? ' selected' : ''}" onclick="setChoice('w1_egg_${sel.key}','sunny')">ביצת עין</button>
+                    <button class="choice-btn${val === 'flipped' ? ' selected' : ''}" onclick="setChoice('w1_egg_${sel.key}','flipped')">ביצת עין הפוכה</button>
                     ${!val ? '<span class="choice-required" style="display:inline;">⚠️</span>' : ''}
                   </div>`;
                 }
@@ -886,12 +905,6 @@ function buildItemEl(item, section) {
           if (count < totalSlots) html += `<div class="choice-required">⚠️ יש לבחור ${totalSlots} מנות עיקריות (נבחרו ${count})</div>`;
           return html;
         })()}
-        <div class="item-choices" style="margin-top:10px;">
-          <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">פירה – בחירה:</div>
-          <button class="choice-btn${(choices['w1_mash']||'') === 'dairy' ? ' selected' : ''}" onclick="setChoice('w1_mash','dairy')">חלבי</button>
-          <button class="choice-btn${(choices['w1_mash']||'') === 'parve' ? ' selected' : ''}" onclick="setChoice('w1_mash','parve')">פרווה</button>
-        </div>
-        <div class="choice-required" style="${choices['w1_mash'] ? 'display:none' : ''}">⚠️ יש לבחור חלבי או פרווה לפירה</div>
       ` : ""}
       ${vegNoteHTML}
       ${choiceHTML}
@@ -948,6 +961,8 @@ function changeQty(id, delta, step, minQ) {
         delete choices["w1_protein_" + sel.key];
         delete choices["w1_couscous_" + sel.key];
         delete choices["w1_potato_" + sel.key];
+        delete choices["w1_sauce_" + sel.key];
+        delete choices["w1_egg_" + sel.key];
       });
       delete choices["w1_selections"];
     }
@@ -969,6 +984,8 @@ function manualQty(id, raw, step, minQ) {
         delete choices["w1_protein_" + sel.key];
         delete choices["w1_couscous_" + sel.key];
         delete choices["w1_potato_" + sel.key];
+        delete choices["w1_sauce_" + sel.key];
+        delete choices["w1_egg_" + sel.key];
       });
       delete choices["w1_selections"];
     }
@@ -1002,6 +1019,8 @@ function removeWeeklyMain(id) {
   delete choices['w1_beyond_' + removed.key];
   delete choices['w1_couscous_' + removed.key];
   delete choices['w1_protein_' + removed.key];
+  delete choices['w1_sauce_' + removed.key];
+  delete choices['w1_egg_' + removed.key];
   choices['w1_selections'] = selections;
   refreshItem('w1');
   updateSummary();
@@ -1009,7 +1028,7 @@ function removeWeeklyMain(id) {
 
 function setChoice(id, value) {
   choices[id] = value;
-  if (id === "w1_mash" || id === "w1_salad" || id.startsWith("w1_beyond_") || id.startsWith("w1_protein_") || id.startsWith("w1_couscous_") || id.startsWith("w1_potato_")) {
+  if (id === "w1_mash" || id === "w1_salad" || id.startsWith("w1_beyond_") || id.startsWith("w1_protein_") || id.startsWith("w1_couscous_") || id.startsWith("w1_potato_") || id.startsWith("w1_sauce_") || id.startsWith("w1_egg_")) {
     refreshItem("w1");
   } else {
     refreshItem(id);
@@ -1059,7 +1078,7 @@ function calcItemCost(item) {
     return item.price * qty;
   }
   let price = item.price;
-  const beyondExtra = ((item.checkbox === "beyond_choice" || item.checkbox === "pad_kapao" || item.checkbox === "beyond_choice_with_potato") && choices[item.id] === "beyond") ? 15 : 0;
+  const beyondExtra = ((item.checkbox === "beyond_choice" || item.checkbox === "pad_kapao" || item.checkbox === "beyond_choice_with_potato" || item.checkbox === "sauce_tofu_beyond") && choices[item.id] === "beyond") ? 15 : 0;
   return (price * qty) / 100 + beyondExtra;
 }
 
@@ -1104,6 +1123,17 @@ function getChoiceLabelPotatoPie(id) {
   return label;
 }
 
+function getChoiceLabelSauceTofuBeyond(id) {
+  const protein = choices[id] || "";
+  const sauce = choices[id + "_sauce"] || "";
+  let label = "";
+  if (protein === "tofu") label += " – טופו";
+  if (protein === "beyond") label += " – ביונד";
+  if (sauce === "persian") label += " + רוטב פרסי";
+  if (sauce === "moroccan") label += " + רוטב מרוקאי";
+  return label;
+}
+
 function getChoiceLabelPadKapao(id) {
   const protein = choices[id] || "";
   const egg = choices[id + "_egg"] || "";
@@ -1130,7 +1160,7 @@ function updateSummary() {
       const cost = calcItemCost(item).toFixed(1);
       const min = getMinForItem(item, sec);
       const isError = !item.fixed && qty < min;
-      const choiceLabel = item.checkbox === "pad_kapao" ? getChoiceLabelPadKapao(item.id) : (item.checkbox === "beyond_choice_with_potato" ? getChoiceLabelPotatoPie(item.id) : getChoiceLabel(item.id));
+      const choiceLabel = item.checkbox === "pad_kapao" ? getChoiceLabelPadKapao(item.id) : (item.checkbox === "beyond_choice_with_potato" ? getChoiceLabelPotatoPie(item.id) : (item.checkbox === "sauce_tofu_beyond" ? getChoiceLabelSauceTofuBeyond(item.id) : getChoiceLabel(item.id)));
       // Show discounted per-unit price for condiments
       const totalJars = ["c1","c2","c3","c4","c5","c6"].reduce((s,id) => s + (quantities[id] || 0), 0);
       const jarNote = item.id.startsWith("c") && totalJars >= 4 ? " (20₪)" : "";
@@ -1214,18 +1244,17 @@ function sendOrder() {
         const totalSlots = numBundles * 4;
         const selections = choices["w1_selections"] || [];
         if (selections.length < totalSlots) return true;
-        if (!choices["w1_mash"]) return true;
         // check sub-choices for each selection
         for (const sel of selections) {
-          if (['w1_m8','w1_m10'].includes(sel.id) && !choices["w1_beyond_" + sel.key]) return true;
-          if (sel.id === 'w1_m10' && !choices["w1_potato_" + sel.key]) return true;
-          if (sel.id === 'w1_m15' && !choices["w1_protein_" + sel.key]) return true;
-          if (sel.id === 'w1_m5a' && !choices["w1_couscous_" + sel.key]) return true;
+          if (['w1_m9','w1_m16','w1_m7v'].includes(sel.id) && !choices["w1_beyond_" + sel.key]) return true;
+          if (['w1_m7','w1_m7v'].includes(sel.id) && !choices["w1_sauce_" + sel.key]) return true;
+          if (sel.id === 'w1_m16' && !choices["w1_egg_" + sel.key]) return true;
         }
       }
       return false;
     }
     if (i.checkbox === "pad_kapao") return !choices[i.id] || !choices[i.id + "_egg"];
+    if (i.checkbox === "sauce_tofu_beyond") return !choices[i.id] || !choices[i.id + "_sauce"];
     if (i.checkbox === "beyond_choice_with_potato") return !choices[i.id] || !choices[i.id + "_potato"];
     return !choices[i.id];
   });
@@ -1236,8 +1265,6 @@ function sendOrder() {
       const selections = choices["w1_selections"] || [];
       if (selections.length < totalSlots) {
         showToast(`⚠️ יש לבחור ${totalSlots} מנות עיקריות למארז (נבחרו ${selections.length})`);
-      } else if (!choices["w1_mash"]) {
-        showToast("⚠️ יש לבחור חלבי או פרווה לפירה במארז");
       } else {
         showToast("⚠️ יש להשלים את כל הבחירות במארז השבועי");
       }
@@ -1256,9 +1283,9 @@ function sendOrder() {
   msg += `*פירוט ההזמנה:*\n`;
 
   const weeklyMainNames = {
-    'w1_m1': 'מסאחן עוף', 'w1_m5a': 'קוסקוס',
-    'w1_m8': 'בורקס בשר', 'w1_m10': 'פאי רועים',
-    'w1_m11': 'דג מרוקאי', 'w1_m15': 'מוקפץ תאילנדי'
+    'w1_m3': 'עוף בתנור עם תפוחי אדמה ובטטה', 'w1_m7': 'קציצות עוף',
+    'w1_m7v': 'קציצות צמחוניות/טבעוניות', 'w1_m9': 'פסטה בולונז',
+    'w1_m11': 'דג מרוקאי', 'w1_m16': 'פאד קפאו'
   };
 
   menu.forEach(sec => {
@@ -1269,7 +1296,7 @@ function sendOrder() {
       const qty = quantities[item.id];
       const unit = item.fixed ? "יח'" : "גרם";
       const cost = calcItemCost(item).toFixed(1);
-      const choiceLabel = item.checkbox === "pad_kapao" ? getChoiceLabelPadKapao(item.id) : (item.checkbox === "beyond_choice_with_potato" ? getChoiceLabelPotatoPie(item.id) : getChoiceLabel(item.id));
+      const choiceLabel = item.checkbox === "pad_kapao" ? getChoiceLabelPadKapao(item.id) : (item.checkbox === "beyond_choice_with_potato" ? getChoiceLabelPotatoPie(item.id) : (item.checkbox === "sauce_tofu_beyond" ? getChoiceLabelSauceTofuBeyond(item.id) : getChoiceLabel(item.id)));
       msg += `- ${item.name}${choiceLabel} – ${qty} ${unit} = ${cost} ₪\n`;
       // Weekly bundle details
       if (item.id === "w1") {
@@ -1277,15 +1304,14 @@ function sendOrder() {
         msg += `   • מנות עיקריות:\n`;
         selections.forEach(sel => {
           let mainLine = `      – ${weeklyMainNames[sel.id] || sel.id}`;
-          if (choices["w1_beyond_" + sel.key]) mainLine += choices["w1_beyond_" + sel.key] === "beyond" ? " (ביונד +15₪)" : " (בשר רגיל)";
-          if (choices["w1_potato_" + sel.key]) mainLine += ` – פירה ${choices["w1_potato_" + sel.key] === "dairy" ? "חלבי" : "פרווה"}`;
-          if (choices["w1_protein_" + sel.key]) mainLine += choices["w1_protein_" + sel.key] === "chicken" ? " (עוף)" : " (טופו)";
-          if (choices["w1_couscous_" + sel.key]) mainLine += choices["w1_couscous_" + sel.key] === "chicken" ? " (עם עוף)" : " (צמחוני)";
+          const bv = choices["w1_beyond_" + sel.key];
+          if (bv) mainLine += bv === "beyond" ? " (ביונד +15₪)" : (bv === "tofu" ? " (טופו)" : " (בשר רגיל)");
+          if (choices["w1_sauce_" + sel.key]) mainLine += choices["w1_sauce_" + sel.key] === "persian" ? " – רוטב פרסי" : " – רוטב מרוקאי";
+          if (choices["w1_egg_" + sel.key]) mainLine += choices["w1_egg_" + sel.key] === "sunny" ? " – ביצת עין" : " – ביצת עין הפוכה";
           msg += mainLine + "\n";
         });
-        const mash = choices["w1_mash"];
-        msg += `   • תוספות (כלולות): אורז לבן, פירה ${mash === "dairy" ? "חלבי" : "פרווה"}\n`;
-        msg += `   • סלט (כלול): חציל על האש בטחינה\n`;
+        msg += `   • תוספות (כלולות): אורז לבן, מיקס ירקות בתנור\n`;
+        msg += `   • סלט (כלול): מטבוחה\n`;
       }
     });
   });
