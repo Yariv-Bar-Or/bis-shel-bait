@@ -178,6 +178,10 @@
     border: 0.5px solid var(--border);
   }
   .item-has-hero .item-row { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; }
+  /* WEEKLY BUNDLE: dish picker gets the full width under the item */
+  .item.item-weekly { flex-wrap: wrap; }
+  .weekly-picker { flex-basis: 100%; min-width: 0; }
+
   /* QTY CONTROL */
   .qty-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
   .qty-control {
@@ -791,6 +795,7 @@ function buildItemEl(item, section) {
   const div = document.createElement("div");
   div.className = "item" + (hasQty ? " has-qty" : "") + (isError ? " error-state" : "") + (choiceNeeded ? " choice-error" : "") + (item.outOfStock ? " out-of-stock" : "");
   div.id = "item-" + item.id;
+  if (item.weeklyDetails) div.classList.add("item-weekly");
 
   const priceLabel = isFixed ? item.price + " ₪ ליחידה" : item.price + " ₪ ל-100 גרם";
   const minLabel = isFixed ? "" : `מינימום ${minQ} גרם`;
@@ -930,7 +935,31 @@ function buildItemEl(item, section) {
         <span class="item-price">${priceLabel}</span>
       </div>
       ${item.note ? `<div class="item-note">* ${item.note}</div>` : ""}
-      ${item.weeklyDetails ? `
+      ${vegNoteHTML}
+      ${choiceHTML}
+      <div class="item-error">${errorMsg}</div>
+    </div>
+    <div class="qty-wrap">
+      <div class="qty-control">
+        <button class="qty-btn"
+          onclick="changeQty('${item.id}', -${step}, ${step}, ${minQ})"
+          onmousedown="startLongPress('${item.id}', -${step}, ${step}, ${minQ})"
+          ontouchstart="startLongPress('${item.id}', -${step}, ${step}, ${minQ})"
+          onmouseup="stopLongPress()" onmouseleave="stopLongPress()"
+          ontouchend="stopLongPress()" ontouchcancel="stopLongPress()">−</button>
+        <input class="qty-input" type="number" value="${qty}" min="0" step="${step}"
+          id="inp-${item.id}"
+          onchange="manualQty('${item.id}', this.value, ${step}, ${minQ})">
+        <button class="qty-btn"
+          onclick="changeQty('${item.id}', ${step}, ${step}, ${minQ})"
+          onmousedown="startLongPress('${item.id}', ${step}, ${step}, ${minQ})"
+          ontouchstart="startLongPress('${item.id}', ${step}, ${step}, ${minQ})"
+          onmouseup="stopLongPress()" onmouseleave="stopLongPress()"
+          ontouchend="stopLongPress()" ontouchcancel="stopLongPress()">+</button>
+      </div>
+      <div class="qty-unit">${unit}</div>
+    </div>
+    ${item.weeklyDetails ? `<div class="weekly-picker">
         ${(() => {
           const numBundles = quantities['w1'] || 1;
           const totalSlots = numBundles * 4;
@@ -1013,31 +1042,7 @@ function buildItemEl(item, section) {
           if (count < totalSlots) html += `<div class="choice-required">⚠️ יש לבחור ${totalSlots} מנות עיקריות (נבחרו ${count})</div>`;
           return html;
         })()}
-      ` : ""}
-      ${vegNoteHTML}
-      ${choiceHTML}
-      <div class="item-error">${errorMsg}</div>
-    </div>
-    <div class="qty-wrap">
-      <div class="qty-control">
-        <button class="qty-btn"
-          onclick="changeQty('${item.id}', -${step}, ${step}, ${minQ})"
-          onmousedown="startLongPress('${item.id}', -${step}, ${step}, ${minQ})"
-          ontouchstart="startLongPress('${item.id}', -${step}, ${step}, ${minQ})"
-          onmouseup="stopLongPress()" onmouseleave="stopLongPress()"
-          ontouchend="stopLongPress()" ontouchcancel="stopLongPress()">−</button>
-        <input class="qty-input" type="number" value="${qty}" min="0" step="${step}"
-          id="inp-${item.id}"
-          onchange="manualQty('${item.id}', this.value, ${step}, ${minQ})">
-        <button class="qty-btn"
-          onclick="changeQty('${item.id}', ${step}, ${step}, ${minQ})"
-          onmousedown="startLongPress('${item.id}', ${step}, ${step}, ${minQ})"
-          ontouchstart="startLongPress('${item.id}', ${step}, ${step}, ${minQ})"
-          onmouseup="stopLongPress()" onmouseleave="stopLongPress()"
-          ontouchend="stopLongPress()" ontouchcancel="stopLongPress()">+</button>
-      </div>
-      <div class="qty-unit">${unit}</div>
-    </div>
+    </div>` : ""}
   `;
   div.innerHTML = heroSrc
     ? `<img class="item-img-hero" src="${heroSrc}" alt="${item.name}" loading="lazy"><div class="item-row">${rowHTML}</div>`
