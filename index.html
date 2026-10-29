@@ -1043,17 +1043,20 @@ function buildItemEl(item, section) {
 
           if (count < totalSlots) html += `<div class="choice-required">⚠️ יש לבחור ${totalSlots} מנות עיקריות (נבחרו ${count})</div>`;
 
-          html += `<div style="margin-top:10px;font-size:13px;color:var(--text2);margin-bottom:6px;">סלט אחד לכל מארז (כלול, בלי תוספת):</div>`;
-          for (let b = 0; b < numBundles; b++) {
-            const val = choices['w1_salad_' + b] || '';
-            const label = numBundles > 1 ? `מארז ${b + 1}: ` : '';
-            html += `<div style="margin-bottom:6px;font-size:13px;">${label}`;
-            WEEKLY_SALADS.forEach((name, i) => {
-              html += `<button class="choice-btn${val === name ? ' selected' : ''}" onclick="setChoice('w1_salad_${b}', WEEKLY_SALADS[${i}])">${name}</button>`;
-            });
-            if (!val) html += '<span class="choice-required" style="display:inline;">⚠️</span>';
-            html += `</div>`;
-          }
+          const pickedSalad = choices['w1_salad'] || '';
+          html += `<div style="margin-top:10px;font-size:13px;color:var(--text2);margin-bottom:6px;">בחר/י סלט אחד (כלול, בלי תוספת):</div>`;
+          WEEKLY_SALADS.forEach((name, i) => {
+            const selected = pickedSalad === name;
+            html += `<div style="margin-bottom:8px;border:1px solid var(--border, #eee);border-radius:8px;padding:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="flex:1;font-size:14px;">${name}</span>
+                <button type="button" class="qty-btn" style="width:28px;height:28px;${!selected ? 'opacity:0.3;' : ''}" onclick="removeWeeklySalad()" ${!selected ? 'disabled' : ''}>−</button>
+                <span style="min-width:20px;text-align:center;font-weight:700;">${selected ? 1 : 0}</span>
+                <button type="button" class="qty-btn" style="width:28px;height:28px;${selected ? 'opacity:0.3;' : ''}" onclick="addWeeklySalad(${i})" ${selected ? 'disabled' : ''}>+</button>
+              </div>
+            </div>`;
+          });
+          if (!pickedSalad) html += `<div class="choice-required" style="display:block;">⚠️ יש לבחור סלט אחד</div>`;
           return html;
         })()}
     </div>` : ""}
@@ -1080,8 +1083,7 @@ function changeQty(id, delta, step, minQ) {
     delete choices[id];
     // Clean up weekly bundle sub-choices
     if (id === "w1") {
-      Object.keys(choices).forEach(k => { if (k.startsWith("w1_salad_")) delete choices[k]; });
-      delete choices["w1_mash"]; delete choices["w1_salad"]; delete choices["w1_mains"];
+      delete choices["w1_salad"];
       const sels = choices["w1_selections"] || [];
       sels.forEach(sel => {
         delete choices["w1_beyond_" + sel.key];
@@ -1105,8 +1107,7 @@ function manualQty(id, raw, step, minQ) {
   if (!quantities[id]) {
     delete choices[id];
     if (id === "w1") {
-      Object.keys(choices).forEach(k => { if (k.startsWith("w1_salad_")) delete choices[k]; });
-      delete choices["w1_mash"]; delete choices["w1_salad"]; delete choices["w1_mains"];
+      delete choices["w1_salad"];
       const sels = choices["w1_selections"] || [];
       sels.forEach(sel => {
         delete choices["w1_beyond_" + sel.key];
@@ -1143,11 +1144,6 @@ function trimWeeklySelections() {
     }
   });
   choices["w1_selections"] = kept;
-  Object.keys(choices).forEach(k => {
-    if (!k.startsWith("w1_salad_")) return;
-    const idx = parseInt(k.slice("w1_salad_".length), 10);
-    if (idx >= bundles) delete choices[k];
-  });
 }
 
 function addWeeklyMain(id) {
@@ -1167,6 +1163,21 @@ function addWeeklyMain(id) {
   const opt = getWeeklyMainOptions().find(o => o.id === id);
   if (opt && opt.hasSauce && opt.onlySauce) choices['w1_sauce_' + key] = opt.onlySauce;
   choices['w1_selections'] = selections;
+  refreshItem('w1');
+  updateSummary();
+}
+
+function addWeeklySalad(index) {
+  const name = WEEKLY_SALADS[index];
+  if (!name) return;
+  if (!quantities['w1']) quantities['w1'] = 1;
+  choices['w1_salad'] = name;
+  refreshItem('w1');
+  updateSummary();
+}
+
+function removeWeeklySalad() {
+  delete choices['w1_salad'];
   refreshItem('w1');
   updateSummary();
 }
@@ -1432,9 +1443,7 @@ function sendOrder() {
           if (opt.hasEgg && !choices["w1_egg_" + sel.key]) return true;
           if (opt.hasThaiProtein && !choices["w1_protein_" + sel.key]) return true;
         }
-        for (let b = 0; b < numBundles; b++) {
-          if (!choices["w1_salad_" + b]) return true;
-        }
+        if (!choices["w1_salad"]) return true;
       }
       return false;
     }
@@ -1450,7 +1459,7 @@ function sendOrder() {
       const selections = choices["w1_selections"] || [];
       if (selections.length !== totalSlots) {
         showToast(`⚠️ יש לבחור ${totalSlots} מנות עיקריות למארז (נבחרו ${selections.length})`);
-      } else if ([...Array(numBundles)].some((_, b) => !choices["w1_salad_" + b])) {
+      } else if (!choices["w1_salad"]) {
         showToast("⚠️ יש לבחור סלט אחד לכל מארז");
       } else {
         showToast("⚠️ יש להשלים את כל הבחירות במארז השבועי");
@@ -1498,13 +1507,7 @@ function sendOrder() {
           msg += mainLine + "\n";
         });
         msg += `   • תוספות (כלולות): ${WEEKLY_SIDES.join(', ')}\n`;
-        const bundleCount = quantities["w1"] || 1;
-        const saladLines = [];
-        for (let b = 0; b < bundleCount; b++) {
-          const prefix = bundleCount > 1 ? `מארז ${b + 1}: ` : "";
-          saladLines.push(prefix + (choices["w1_salad_" + b] || ""));
-        }
-        msg += `   • סלט (כלול): ${saladLines.join(", ")}\n`;
+        msg += `   • סלט (כלול): ${choices["w1_salad"] || ""}\n`;
       }
     });
   });
