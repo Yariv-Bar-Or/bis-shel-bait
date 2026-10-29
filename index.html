@@ -1048,8 +1048,8 @@ function buildItemEl(item, section) {
             const val = choices['w1_salad_' + b] || '';
             const label = numBundles > 1 ? `מארז ${b + 1}: ` : '';
             html += `<div style="margin-bottom:6px;font-size:13px;">${label}`;
-            WEEKLY_SALADS.forEach(name => {
-              html += `<button class="choice-btn${val === name ? ' selected' : ''}" onclick="setChoice('w1_salad_${b}',${JSON.stringify(name)})">${name}</button>`;
+            WEEKLY_SALADS.forEach((name, i) => {
+              html += `<button class="choice-btn${val === name ? ' selected' : ''}" onclick="setChoice('w1_salad_${b}', WEEKLY_SALADS[${i}])">${name}</button>`;
             });
             if (!val) html += '<span class="choice-required" style="display:inline;">⚠️</span>';
             html += `</div>`;
