@@ -574,7 +574,7 @@ const PHONE = "972549103442";
 
 // ── המארז השבועי: לעדכן כאן כל שבוע ──
 const WEEKLY_SIDES = ["מג'דרה", "מיקס ירקות בתנור"]; // תוספות כלולות
-const WEEKLY_SALADS = ["סלט כרוב לבן"];               // סלט אחד לבחירה לכל מארז
+const WEEKLY_SALADS = ["סלט כרוב לבן"];               // סלט כלול, בלי בחירה
 let referralFriendName = "";
 
 const itemHeroImages = {
@@ -985,7 +985,7 @@ function buildItemEl(item, section) {
           const dishCounts = {};
           selections.forEach(s => { dishCounts[s.id] = (dishCounts[s.id] || 0) + 1; });
 
-          let html = `<div class="item-note" style="margin-bottom:8px;">* בחר/י ${totalSlots} מנות עיקריות וסלט אחד לכל מארז. תוספות כלולות: ${WEEKLY_SIDES.join(' + ')}.</div>`;
+          let html = `<div class="item-note" style="margin-bottom:8px;">* בחר/י ${totalSlots} מנות עיקריות. כלול: ${[...WEEKLY_SIDES, ...WEEKLY_SALADS].join(' + ')}.</div>`;
           html += `<div style="font-size:13px;color:var(--text2);margin-bottom:6px;">בחר/י ${totalSlots} מנות עיקריות (${count}/${totalSlots}):</div>`;
 
           weeklyMains.forEach(m => {
@@ -1054,21 +1054,7 @@ function buildItemEl(item, section) {
           });
 
           if (count < totalSlots) html += `<div class="choice-required">⚠️ יש לבחור ${totalSlots} מנות עיקריות (נבחרו ${count})</div>`;
-
-          const pickedSalad = choices['w1_salad'] || '';
-          html += `<div style="margin-top:10px;font-size:13px;color:var(--text2);margin-bottom:6px;">בחר/י סלט אחד (כלול, בלי תוספת):</div>`;
-          WEEKLY_SALADS.forEach((name, i) => {
-            const selected = pickedSalad === name;
-            html += `<div style="margin-bottom:8px;border:1px solid var(--border, #eee);border-radius:8px;padding:8px;">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="flex:1;font-size:14px;">${name}</span>
-                <button type="button" class="qty-btn" style="width:28px;height:28px;${!selected ? 'opacity:0.3;' : ''}" onclick="removeWeeklySalad()" ${!selected ? 'disabled' : ''}>−</button>
-                <span style="min-width:20px;text-align:center;font-weight:700;">${selected ? 1 : 0}</span>
-                <button type="button" class="qty-btn" style="width:28px;height:28px;${selected ? 'opacity:0.3;' : ''}" onclick="addWeeklySalad(${i})" ${selected ? 'disabled' : ''}>+</button>
-              </div>
-            </div>`;
-          });
-          if (!pickedSalad) html += `<div class="choice-required" style="display:block;">⚠️ יש לבחור סלט אחד</div>`;
+          html += `<div class="item-note" style="margin-top:8px;">תוספות כלולות: ${WEEKLY_SIDES.join(', ')}<br>סלט כלול: ${WEEKLY_SALADS.join(', ')}</div>`;
           return html;
         })()}
     </div>` : ""}
@@ -1455,7 +1441,6 @@ function sendOrder() {
           if (opt.hasEgg && !choices["w1_egg_" + sel.key]) return true;
           if (opt.hasThaiProtein && !choices["w1_protein_" + sel.key]) return true;
         }
-        if (!choices["w1_salad"]) return true;
       }
       return false;
     }
@@ -1471,8 +1456,6 @@ function sendOrder() {
       const selections = choices["w1_selections"] || [];
       if (selections.length !== totalSlots) {
         showToast(`⚠️ יש לבחור ${totalSlots} מנות עיקריות למארז (נבחרו ${selections.length})`);
-      } else if (!choices["w1_salad"]) {
-        showToast("⚠️ יש לבחור סלט אחד לכל מארז");
       } else {
         showToast("⚠️ יש להשלים את כל הבחירות במארז השבועי");
       }
@@ -1519,7 +1502,7 @@ function sendOrder() {
           msg += mainLine + "\n";
         });
         msg += `   • תוספות (כלולות): ${WEEKLY_SIDES.join(', ')}\n`;
-        msg += `   • סלט (כלול): ${choices["w1_salad"] || ""}\n`;
+        msg += `   • סלט (כלול): ${WEEKLY_SALADS.join(', ')}\n`;
       }
     });
   });
