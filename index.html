@@ -327,7 +327,10 @@
   }
   .name-input:focus { border-color: var(--gold); }
   .name-input.error { border-color: var(--red-border); }
-  body.delivery-mode { padding-bottom: 220px; } /* room for the address field */
+  body.delivery-mode { padding-bottom: 220px; } /* room for the address field (JS adjusts to the real bar height) */
+  .send-wrap > .name-input { display: block; width: 100%; }
+  .time-label { flex: 1; display: block; font-size: 12px; color: var(--text2); }
+  .time-label .name-input { display: block; width: 100%; margin-top: 4px; }
   .send-btn {
     width: 100%;
     padding: 13px;
@@ -483,13 +486,24 @@
   <!-- Send button always visible -->
   <div class="send-wrap">
     <input class="name-input" type="text" id="customer-name" placeholder="שם מלא לצורך ההזמנה" style="margin-bottom:8px;" />
+    <div class="delivery-row" style="margin-bottom:8px;">
+      <button class="del-btn" id="pickup-btn" onclick="setDelivery('pickup')">🚶 איסוף עצמי</button>
+      <button class="del-btn" id="delivery-btn" onclick="setDelivery('delivery')">🛵 משלוח (+20 ₪)</button>
+    </div>
     <input class="name-input" type="text" id="delivery-address" placeholder="כתובת למשלוח (רחוב, מספר, עיר)" autocomplete="street-address" style="margin-bottom:8px;display:none;" />
-    <div style="display:flex;gap:8px;margin-bottom:8px;">
-      <label style="flex:1;font-size:12px;color:var(--text2);">משעה
-        <input class="name-input" type="time" id="time-from" style="width:100%;margin-top:4px;">
+    <!-- Pickup: one exact time, 13:00–21:00 -->
+    <div id="pickup-time-row" style="display:none;margin-bottom:8px;">
+      <label class="time-label">שעת איסוף (בין 13:00 ל־21:00)
+        <input class="name-input" type="time" id="pickup-time" min="13:00" max="21:00">
       </label>
-      <label style="flex:1;font-size:12px;color:var(--text2);">עד שעה
-        <input class="name-input" type="time" id="time-to" style="width:100%;margin-top:4px;">
+    </div>
+    <!-- Delivery: a time range -->
+    <div id="delivery-time-row" style="display:none;gap:8px;margin-bottom:8px;">
+      <label class="time-label">משלוח משעה
+        <input class="name-input" type="time" id="time-from">
+      </label>
+      <label class="time-label">עד שעה
+        <input class="name-input" type="time" id="time-to">
       </label>
     </div>
     <button class="send-btn" onclick="sendOrder()">
@@ -505,10 +519,6 @@
     <div class="summary-total">
       <span>סה"כ משוער</span>
       <span id="total-display2">0 ₪</span>
-    </div>
-    <div class="delivery-row">
-      <button class="del-btn" id="pickup-btn" onclick="setDelivery('pickup')">🚶 איסוף עצמי</button>
-      <button class="del-btn" id="delivery-btn" onclick="setDelivery('delivery')">🛵 משלוח (+20 ₪)</button>
     </div>
   </div><!-- end summary-panel -->
 </div><!-- end summary-bar -->
@@ -720,7 +730,7 @@ const quantities = {};
 const choices = {}; // { itemId: "persian" | "moroccan" | "beyond" | "regular" }
 const DELIVERY_FEE = 20;
 let deliveryMode = null; // null = הלקוח עוד לא בחר; בלחיצה על "שלח" ייפתח חלון בחירה
-let deliveryWindow = null; // { from: "HH:MM", to: "HH:MM" }
+let orderTime = ""; // "HH:MM" for pickup, "HH:MM–HH:MM" for delivery
 
 // ── WEEKLY BUNDLE OPTIONS ──────────────────────────────────────────────────
 // רשימת המנות שאפשר לבחור למארז השבועי נגזרת אוטומטית מהמנות העיקריות
@@ -1225,8 +1235,22 @@ function setDelivery(mode) {
   document.getElementById("pickup-btn").classList.toggle("active", mode === "pickup");
   document.getElementById("delivery-btn").classList.toggle("active", mode === "delivery");
   document.getElementById("delivery-address").style.display = mode === "delivery" ? "" : "none";
+  document.getElementById("pickup-time-row").style.display = mode === "pickup" ? "block" : "none";
+  document.getElementById("delivery-time-row").style.display = mode === "delivery" ? "flex" : "none";
   document.body.classList.toggle("delivery-mode", mode === "delivery");
   updateSummary();
+  syncBodyPadding();
+}
+
+// Keep the page content clear of the fixed bottom bar, whatever its height
+function syncBodyPadding() {
+  const bar = document.getElementById("summary-bar");
+  if (bar) document.body.style.paddingBottom = (bar.offsetHeight + 20) + "px";
+}
+window.addEventListener("resize", syncBodyPadding);
+window.addEventListener("load", syncBodyPadding);
+if (window.ResizeObserver) {
+  new ResizeObserver(syncBodyPadding).observe(document.getElementById("summary-bar"));
 }
 
 // ── SUMMARY ──────────────────────────────────────────────────────────────────
@@ -1391,17 +1415,6 @@ function sendOrder() {
     return;
   }
 
-  const windowCheck = timeWindowOk();
-  if (!windowCheck.ok) {
-    showToast(windowCheck.msg);
-    const timeInput = document.getElementById(!document.getElementById("time-from").value ? "time-from" : "time-to");
-    timeInput.classList.add("error");
-    timeInput.focus();
-    setTimeout(() => timeInput.classList.remove("error"), 2000);
-    return;
-  }
-  deliveryWindow = { from: windowCheck.from, to: windowCheck.to };
-
   if (!deliveryMode) {
     document.getElementById("delivery-modal").classList.add("open");
     return;
@@ -1416,6 +1429,17 @@ function sendOrder() {
     setTimeout(() => addrInput.classList.remove("error"), 2000);
     return;
   }
+
+  const timeCheck = checkOrderTime();
+  if (!timeCheck.ok) {
+    showToast(timeCheck.msg);
+    const timeInput = document.getElementById(timeCheck.field);
+    timeInput.classList.add("error");
+    timeInput.focus();
+    setTimeout(() => timeInput.classList.remove("error"), 2500);
+    return;
+  }
+  orderTime = timeCheck.text;
 
   // Check minimums
   let errorItems = [];
@@ -1483,8 +1507,8 @@ function sendOrder() {
   let msg = `*הזמנה חדשה – ביס של בית*\n`;
   msg += `שם: ${name}\n`;
   msg += deliveryMode === "delivery"
-    ? `משלוח (+${DELIVERY_FEE} ₪)\nכתובת: ${address}\nשעה: ${deliveryWindow.from}–${deliveryWindow.to}\n\n`
-    : `איסוף עצמי מרחוב שלמה המלך 4\nשעה: ${deliveryWindow.from}–${deliveryWindow.to}\n\n`;
+    ? `משלוח (+${DELIVERY_FEE} ₪)\nכתובת: ${address}\nשעת משלוח: ${orderTime}\n\n`
+    : `איסוף עצמי מרחוב שלמה המלך 4\nשעת איסוף: ${orderTime}\n\n`;
   msg += `*פירוט ההזמנה:*\n`;
 
   menu.forEach(sec => {
@@ -1562,30 +1586,31 @@ function closeDeliveryModal(e) {
   }
 }
 
-function timeWindowOk() {
+const PICKUP_FROM = "13:00";
+const PICKUP_TO = "21:00";
+
+// Pickup: one exact time between 13:00 and 21:00. Delivery: a from–to range.
+// Returns { ok, text } or { ok:false, msg, field } (field = input to highlight)
+function checkOrderTime() {
+  if (deliveryMode === "pickup") {
+    const t = document.getElementById("pickup-time").value;
+    if (!t) return { ok: false, field: "pickup-time", msg: "יש לבחור שעת איסוף" };
+    if (t < PICKUP_FROM || t > PICKUP_TO)
+      return { ok: false, field: "pickup-time", msg: `שעת איסוף אפשרית בין ${PICKUP_FROM} ל־${PICKUP_TO}` };
+    return { ok: true, text: t };
+  }
   const from = document.getElementById("time-from").value;
   const to = document.getElementById("time-to").value;
-  if (!from || !to) return { ok: false, msg: "יש לבחור משעה ועד שעה" };
-  const [fh, fm] = from.split(":").map(Number);
-  const [th, tm] = to.split(":").map(Number);
-  const diff = (th * 60 + tm) - (fh * 60 + fm);
-  if (diff <= 0) return { ok: false, msg: "שעת הסיום צריכה להיות אחרי שעת ההתחלה" };
-  if (diff > 120) return { ok: false, msg: "הטווח יכול להיות עד שעתיים" };
-  return { ok: true, from, to };
+  if (!from) return { ok: false, field: "time-from", msg: "יש לבחור טווח שעות למשלוח (משעה ועד שעה)" };
+  if (!to) return { ok: false, field: "time-to", msg: "יש לבחור טווח שעות למשלוח (משעה ועד שעה)" };
+  if (to <= from) return { ok: false, field: "time-to", msg: "שעת הסיום צריכה להיות אחרי שעת ההתחלה" };
+  return { ok: true, text: `${from}–${to}` };
 }
 
 function pickDeliveryAndSend(mode) {
-  const windowCheck = timeWindowOk();
-  if (!windowCheck.ok) {
-    document.getElementById("delivery-modal").classList.remove("open");
-    showToast(windowCheck.msg);
-    document.getElementById("time-from").focus();
-    return;
-  }
-  deliveryWindow = { from: windowCheck.from, to: windowCheck.to };
   document.getElementById("delivery-modal").classList.remove("open");
   setDelivery(mode);
-  sendOrder();
+  sendOrder(); // shows the matching time field and asks for it if still empty
 }
 
 
@@ -1691,7 +1716,7 @@ openWelcome();
   <div class="modal-box" dir="rtl" style="text-align:right;">
     <div style="font-size:28px;margin-bottom:8px;text-align:center;">📝</div>
     <div class="modal-title" style="text-align:center;margin-bottom:12px;">הערה להזמנה</div>
-    <div style="font-size:14px;color:var(--text2);margin-bottom:10px;">אלרגיות, בקשות מיוחדות, זמן איסוף...</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:10px;">אלרגיות, בקשות מיוחדות...</div>
     <textarea id="order-note-input"
       placeholder="כתוב כאן את ההערה שלך (אופציונלי)"
       style="width:100%;min-height:90px;border-radius:10px;border:1.5px solid var(--gold);padding:10px;font-size:15px;font-family:inherit;resize:vertical;box-sizing:border-box;background:var(--bg2);color:var(--text);direction:rtl;"
