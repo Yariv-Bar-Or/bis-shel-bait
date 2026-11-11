@@ -697,13 +697,13 @@ const menu = [
     id: "condiments",
     title: "🫙 מטבלים בצנצנת",
     minGrams: 0,
-    minLabel: "22 ₪ לצנצנת (כ-150 גרם) | 4 צנצנות ומעלה – 20 ₪ ליחידה",
+    minLabel: "צנצנת של כ-150 גרם",
     items: [
       { id: "c1", name: "ריבת פלפל חריף",                      price: 22, fixed: true, veg: true, vegan: true, outOfStock: true },
       { id: "c2", name: "ארטישוק קונפי עם פרמז'ן",              price: 22, fixed: true, veg: true, outOfStock: true },
       { id: "c3", name: "חמאת שום, עשבי תיבול ופרמז'ן",        price: 22, fixed: true, veg: true, outOfStock: true },
       { id: "c4", name: "לימון כבוש",                           price: 22, fixed: true, veg: true, vegan: true, outOfStock: true },
-      { id: "c5", name: "כדורי לאבנה",                          price: 22, fixed: true, veg: true, outOfStock: true },
+      { id: "c5", name: "כדורי לאבנה",                          price: 20, fixed: true, veg: true },
       { id: "c6", name: "סקורדליה – מטבל יווני",               price: 22, fixed: true, veg: true, vegan: true, outOfStock: true }
     ]
   }
@@ -1266,11 +1266,6 @@ function calcItemCost(item) {
       const beyondCount = selections.filter(sel => choices["w1_beyond_" + sel.key] === "beyond").length;
       return item.price * qty + beyondCount * 15;
     }
-    if (item.id.startsWith("c")) {
-      const totalJars = ["c1","c2","c3","c4","c5","c6"].reduce((s,id) => s + (quantities[id] || 0), 0);
-      const price = totalJars >= 4 ? 20 : 22;
-      return price * qty;
-    }
     return item.price * qty;
   }
   let price = item.price;
@@ -1358,11 +1353,8 @@ function updateSummary() {
       const min = getMinForItem(item, sec);
       const isError = !item.fixed && qty < min;
       const choiceLabel = item.checkbox === "pad_kapao" ? getChoiceLabelPadKapao(item.id) : (item.checkbox === "beyond_choice_with_potato" ? getChoiceLabelPotatoPie(item.id) : (item.checkbox === "sauce_tofu_beyond" ? getChoiceLabelSauceTofuBeyond(item.id) : getChoiceLabel(item.id)));
-      // Show discounted per-unit price for condiments
-      const totalJars = ["c1","c2","c3","c4","c5","c6"].reduce((s,id) => s + (quantities[id] || 0), 0);
-      const jarNote = item.id.startsWith("c") && totalJars >= 4 ? " (20₪)" : "";
       return `<div class="order-line" style="${isError ? 'color:var(--red-text)' : ''}">
-        <span>${isError ? '⚠️ ' : ''}${item.name}${choiceLabel}${jarNote} (${qty} ${unit})</span>
+        <span>${isError ? '⚠️ ' : ''}${item.name}${choiceLabel} (${qty} ${unit})</span>
         <span>${cost} ₪</span>
       </div>`;
     }).join("") + (deliveryMode === "delivery"
