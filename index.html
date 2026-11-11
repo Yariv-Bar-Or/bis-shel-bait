@@ -552,7 +552,16 @@
 
 <div class="modal-overlay" id="delivery-modal" onclick="closeDeliveryModal(event)">
   <div class="modal-box" dir="rtl">
-    <div class="modal-title">איך תרצה לקבל את ההזמנה?</div>
+    <div class="modal-title">איך ומתי לקבל את ההזמנה?</div>
+    <p style="font-size:13px;color:var(--text2);text-align:center;margin:-8px 0 12px;">טווח של עד שעתיים</p>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <label style="flex:1;font-size:13px;color:var(--text2);">משעה
+        <input class="name-input" type="time" id="time-from" style="width:100%;margin-top:4px;">
+      </label>
+      <label style="flex:1;font-size:13px;color:var(--text2);">עד שעה
+        <input class="name-input" type="time" id="time-to" style="width:100%;margin-top:4px;">
+      </label>
+    </div>
     <button class="modal-btn" onclick="pickDeliveryAndSend('pickup')">🚶 איסוף עצמי<br><span>משלמה המלך 4</span></button>
     <button class="modal-btn" onclick="pickDeliveryAndSend('delivery')">🛵 משלוח<br><span>תוספת 20 ₪</span></button>
     <button class="modal-cancel" onclick="document.getElementById('delivery-modal').classList.remove('open')">ביטול</button>
@@ -712,6 +721,7 @@ const quantities = {};
 const choices = {}; // { itemId: "persian" | "moroccan" | "beyond" | "regular" }
 const DELIVERY_FEE = 20;
 let deliveryMode = null; // null = הלקוח עוד לא בחר; בלחיצה על "שלח" ייפתח חלון בחירה
+let deliveryWindow = null; // { from: "HH:MM", to: "HH:MM" }
 
 // ── WEEKLY BUNDLE OPTIONS ──────────────────────────────────────────────────
 // רשימת המנות שאפשר לבחור למארז השבועי נגזרת אוטומטית מהמנות העיקריות
@@ -1383,7 +1393,7 @@ function sendOrder() {
   }
 
   // If delivery mode not chosen yet, show modal
-  if (!deliveryMode) {
+  if (!deliveryMode || !deliveryWindow) {
     document.getElementById("delivery-modal").classList.add("open");
     return;
   }
@@ -1464,8 +1474,8 @@ function sendOrder() {
   let msg = `*הזמנה חדשה – ביס של בית*\n`;
   msg += `שם: ${name}\n`;
   msg += deliveryMode === "delivery"
-    ? `משלוח (+${DELIVERY_FEE} ₪)\nכתובת: ${address}\n\n`
-    : `איסוף עצמי מרחוב שלמה המלך 4\n\n`;
+    ? `משלוח (+${DELIVERY_FEE} ₪)\nכתובת: ${address}\nשעה: ${deliveryWindow.from}–${deliveryWindow.to}\n\n`
+    : `איסוף עצמי מרחוב שלמה המלך 4\nשעה: ${deliveryWindow.from}–${deliveryWindow.to}\n\n`;
   msg += `*פירוט ההזמנה:*\n`;
 
   menu.forEach(sec => {
@@ -1543,10 +1553,27 @@ function closeDeliveryModal(e) {
   }
 }
 
+function timeWindowOk() {
+  const from = document.getElementById("time-from").value;
+  const to = document.getElementById("time-to").value;
+  if (!from || !to) return { ok: false, msg: "יש לבחור משעה ועד שעה" };
+  const [fh, fm] = from.split(":").map(Number);
+  const [th, tm] = to.split(":").map(Number);
+  const diff = (th * 60 + tm) - (fh * 60 + fm);
+  if (diff <= 0) return { ok: false, msg: "שעת הסיום צריכה להיות אחרי שעת ההתחלה" };
+  if (diff > 120) return { ok: false, msg: "הטווח יכול להיות עד שעתיים" };
+  return { ok: true, from, to };
+}
+
 function pickDeliveryAndSend(mode) {
+  const windowCheck = timeWindowOk();
+  if (!windowCheck.ok) {
+    showToast(windowCheck.msg);
+    return;
+  }
+  deliveryWindow = { from: windowCheck.from, to: windowCheck.to };
   document.getElementById("delivery-modal").classList.remove("open");
   setDelivery(mode);
-  // Now actually send
   sendOrder();
 }
 
