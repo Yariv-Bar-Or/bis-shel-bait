@@ -614,7 +614,10 @@ function itemTotals() {
         }
         // Dynamic package (e.g. מארז שבועי) — contents are listed as bullets under it
         var parsed = parseBulletItems(lines, i + 1);
-        parsed.mainDishes.forEach(function(name) { add(tot, name, qty * 500, 'גרם', 'main'); });
+        // Each main-dish bullet is ONE portion (2 bundles → 8 bullets), so 500g each —
+        // NOT multiplied by the number of bundles. Sides are listed once per order,
+        // so those ARE multiplied: 500g per side per bundle.
+        parsed.mainDishes.forEach(function(name) { add(tot, name, 500, 'גרם', 'main'); });
         parsed.sides.forEach(function(name)      { add(tot, name, qty * 500, 'גרם', 'sides'); });
         parsed.salads.forEach(function(name)     { add(tot, name, qty,       "יח'", 'salads'); });
         i++;
