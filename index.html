@@ -520,6 +520,17 @@
 </div><!-- end summary-bar -->
 
 <!-- Delivery modal -->
+<!-- ספיישל: מארז חברי (חלון בכניסה) -->
+<div class="modal-overlay open" id="bundle-modal">
+  <div class="modal-box" dir="rtl" style="text-align:center;">
+    <div style="font-size:34px;margin-bottom:6px;">🍣</div>
+    <div class="modal-title" style="margin-bottom:8px;">מארז חברי</div>
+    <div style="font-size:18px;font-weight:700;color:var(--gold-dark);margin-bottom:6px;">4 מנות ב-200 ₪</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:16px;">50 ₪ למנה במקום 55 ₪</div>
+    <button class="modal-btn primary" onclick="document.getElementById('bundle-modal').classList.remove('open')">המשך להזמנה</button>
+  </div>
+</div>
+
 <!-- FIRST VISIT -->
 <div class="modal-overlay" id="welcome-modal">
   <div class="modal-box" dir="rtl">
@@ -744,6 +755,8 @@ menu.forEach(sec => {
 const quantities = {};
 const choices = {}; // { itemId: "persian" | "moroccan" | "beyond" | "regular" }
 const DELIVERY_FEE = 20;
+const POKE_BUNDLE_QTY = 4;    // מארז חברי: מכמה קערות
+const POKE_BUNDLE_PRICE = 50; // מחיר לקערה במארז חברי
 let deliveryMode = null; // null = הלקוח עוד לא בחר; בלחיצה על "שלח" ייפתח חלון בחירה
 let orderTime = ""; // "HH:MM" for pickup, "HH:MM–HH:MM" for delivery
 
@@ -839,7 +852,12 @@ function buildItemEl(item, section) {
   div.id = "item-" + item.id;
   if (item.weeklyDetails) div.classList.add("item-weekly");
 
-  const priceLabel = isFixed ? item.price + " ₪ ליחידה" : item.price + " ₪ ל-100 גרם";
+  let priceLabel = isFixed ? item.price + " ₪ ליחידה" : item.price + " ₪ ל-100 גרם";
+  if (item.id === "pk1") {
+    priceLabel = qty >= POKE_BUNDLE_QTY
+      ? `${POKE_BUNDLE_PRICE} ₪ ליחידה <span style="color:var(--green-text);font-weight:600;">(מארז חברי 🎉 במקום ${item.price} ₪)</span>`
+      : `${item.price} ₪ ליחידה <span style="color:var(--text3);">· 4 קערות ב-200 ₪ (מארז חברי)</span>`;
+  }
   const minLabel = isFixed ? "" : `מינימום ${minQ} גרם`;
   const errorMsg = isFixed
     ? (minQ > 1 ? `⚠️ מינימום הזמנה: ${minQ} יח'` : "")
@@ -1302,6 +1320,10 @@ function calcItemCost(item) {
   const qty = quantities[item.id] || 0;
   if (!qty || item.outOfStock) return 0;
   if (item.fixed) {
+    // מארז חברי: 4 קערות ומעלה = 50 ₪ לקערה (4 ב-200 ₪)
+    if (item.id === "pk1") {
+      return (qty >= POKE_BUNDLE_QTY ? POKE_BUNDLE_PRICE : item.price) * qty;
+    }
     // Chalah bulk discount
     if (item.id === "s8") {
       const price = (quantities["s8"] || 0) >= 3 ? 15 : item.price;
