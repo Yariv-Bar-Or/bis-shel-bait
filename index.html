@@ -925,14 +925,13 @@ function buildItemEl(item, section) {
       </div>
       <div class="choice-required" style="${curSauce ? 'display:none' : ''}">⚠️ יש לבחור רוטב</div>`}`;
   } else if (hasQty && item.checkbox === "poke_spicy") {
-    if (!choices[item.id]) choices[item.id] = "mild"; // ברירת מחדל: בלי חריף
-    const cur = choices[item.id];
-    choiceHTML = `
+    const bowls = getPokeBowls(item.id); // בחירה נפרדת לכל קערה, ברירת מחדל: בלי חריף
+    choiceHTML = bowls.map((v, i) => `
+      ${bowls.length > 1 ? `<div style="font-size:12px;font-weight:600;color:var(--text2);margin-top:8px;">קערה ${i + 1}</div>` : ''}
       <div class="item-choices">
-        <button class="choice-btn${cur === 'mild' ? ' selected' : ''}" onclick="setChoice('${item.id}','mild')">בלי פלפל חריף</button>
-        <button class="choice-btn${cur === 'spicy' ? ' selected' : ''}" onclick="setChoice('${item.id}','spicy')">🌶️ עם פלפל חריף</button>
-      </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px;">הבחירה חלה על כל הקערות בהזמנה. רוצים חלק חריף וחלק לא? כתבו בהערות 💛</div>`;
+        <button class="choice-btn${v === 'mild' ? ' selected' : ''}" onclick="setBowl('${item.id}',${i},'mild')">בלי פלפל חריף</button>
+        <button class="choice-btn${v === 'spicy' ? ' selected' : ''}" onclick="setBowl('${item.id}',${i},'spicy')">🌶️ עם פלפל חריף</button>
+      </div>`).join('');
   } else if (hasQty && item.checkbox === "thai_protein") {
     const cur = choices[item.id];
     choiceHTML = `
@@ -1116,6 +1115,7 @@ function changeQty(id, delta, step, minQ) {
   quantities[id] = next;
   if (next === 0) {
     delete choices[id];
+    delete choices[id + "_bowls"];
     // Clean up weekly bundle sub-choices
     if (id === "w1") {
       delete choices["w1_salad"];
@@ -1245,6 +1245,24 @@ function setChoice(id, value) {
   updateSummary();
 }
 
+// ── פוקי בול: בחירת חריף נפרדת לכל קערה ─────────────────────────────────────
+function getPokeBowls(id) {
+  const n = quantities[id] || 0;
+  const arr = (choices[id + "_bowls"] || []).slice(0, n);
+  while (arr.length < n) arr.push("mild");
+  choices[id + "_bowls"] = arr;
+  return arr;
+}
+function setBowl(id, i, v) {
+  getPokeBowls(id)[i] = v;
+  refreshItem(id);
+  updateSummary();
+}
+function pokeBowlLines(id) {
+  return getPokeBowls(id).map((v, i) =>
+    `קערה ${i + 1} – ${v === "spicy" ? "עם פלפל חריף 🌶️" : "בלי פלפל חריף"}`);
+}
+
 function refreshItem(id) {
   const item = itemMap[id];
   const section = menu.find(s => s.items.some(i => i.id === id));
@@ -1330,8 +1348,6 @@ function getChoiceLabel(id) {
   if (c === "parve") return " – פרווה/טבעוני";
   if (c === "tahini") return " – טחינה (טבעוני)";
   if (c === "mayo") return " – מיונז (צמחוני)";
-  if (c === "mild") return " – בלי פלפל חריף";
-  if (c === "spicy") return " – עם פלפל חריף 🌶️";
   return "";
 }
 
@@ -1387,7 +1403,7 @@ function updateSummary() {
       return `<div class="order-line" style="${isError ? 'color:var(--red-text)' : ''}">
         <span>${isError ? '⚠️ ' : ''}${item.name}${choiceLabel} (${qty} ${unit})</span>
         <span>${cost} ₪</span>
-      </div>`;
+      </div>` + (item.checkbox === "poke_spicy" ? pokeBowlLines(item.id).map(l => `<div class="order-line" style="font-size:12px;color:var(--text2);padding-top:0;"><span>${l}</span></div>`).join("") : "");
     }).join("") + (deliveryMode === "delivery"
       ? `<div class="order-line"><span>🛵 משלוח</span><span>${DELIVERY_FEE.toFixed(1)} ₪</span></div>`
       : "");
@@ -1499,6 +1515,7 @@ function sendOrder() {
       }
       return false;
     }
+    if (i.checkbox === "poke_spicy") return false;
     if (i.checkbox === "pad_kapao") return !choices[i.id] || !choices[i.id + "_egg"];
     if (i.checkbox === "sauce_tofu_beyond") return !choices[i.id] || !choices[i.id + "_sauce"];
     if (i.checkbox === "beyond_choice_with_potato") return !choices[i.id] || !choices[i.id + "_potato"];
@@ -1540,6 +1557,7 @@ function sendOrder() {
       const cost = calcItemCost(item).toFixed(1);
       const choiceLabel = item.checkbox === "pad_kapao" ? getChoiceLabelPadKapao(item.id) : (item.checkbox === "beyond_choice_with_potato" ? getChoiceLabelPotatoPie(item.id) : (item.checkbox === "sauce_tofu_beyond" ? getChoiceLabelSauceTofuBeyond(item.id) : getChoiceLabel(item.id)));
       msg += `- ${item.name}${choiceLabel} – ${qty} ${unit} = ${cost} ₪\n`;
+      if (item.checkbox === "poke_spicy") pokeBowlLines(item.id).forEach(l => { msg += `   • ${l}\n`; });
       // Weekly bundle details
       if (item.id === "w1") {
         const selections = choices["w1_selections"] || [];
