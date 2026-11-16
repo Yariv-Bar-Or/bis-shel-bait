@@ -493,13 +493,13 @@
     <input class="name-input" type="text" id="delivery-address" placeholder="כתובת למשלוח (רחוב, מספר, עיר)" autocomplete="street-address" style="margin-bottom:8px;display:none;" />
     <!-- Pickup: one exact time, 13:00–21:00 -->
     <div id="pickup-time-row" style="display:none;margin-bottom:8px;">
-      <label class="time-label">שעת איסוף (בין 13:00 ל־21:00)
+      <label class="time-label">שעת איסוף (בין 16:00 ל־21:00)
         <select class="name-input" id="pickup-time"><option value="">בחר/י שעה</option></select>
       </label>
     </div>
     <!-- Delivery: fixed window, no time picking -->
     <div id="delivery-time-row" style="display:none;margin-bottom:8px;padding:8px 12px;border-radius:8px;background:var(--gold-light);color:var(--gold-dark);font-size:13px;line-height:1.5;">
-      🛵 המשלוחים שלנו יוצאים בערב, בין 17:00 ל־21:00. ניצור איתך קשר לתאם 💛<br>
+      🛵 המשלוחים שלנו יוצאים בין 19:30 ל־21:00. ניצור איתך קשר לתאם 💛<br>
       יש שעה שנוחה לך במיוחד? אפשר לכתוב לנו בהערה בסוף ונעשה כמיטב יכולתנו.
     </div>
     <button class="send-btn" onclick="sendOrder()">
@@ -612,7 +612,22 @@ const itemImages = {
 
 
 
+// ── ספיישל פוקי בול ──────────────────────────────────────────────────────────
+// SPECIAL_MODE = true: מוצגת רק מנת הספיישל, שאר התפריט מוסתר (לא נמחק).
+// כדי לחזור לתפריט הרגיל: לשנות ל-false ולהחזיר את openWelcome() בסוף הקובץ.
+const SPECIAL_MODE = true;
+
 const menu = [
+  {
+    id: "special",
+    title: "⭐ ספיישל פוקי בול",
+    minGrams: 0,
+    minLabel: "מנה אחת בלבד – פוקי בול",
+    items: [
+      { id: "pk1", name: "פוקי בול", price: 55, fixed: true, special: true, checkbox: "poke_spicy",
+        note: "מגיע קומפלט: אבוקדו, אדממה, עירית, מלפפון, אננס, בטטה וסלמון טרי.<br>לא אוהבים משהו? כתבו לנו בהערות בסוף ההזמנה." }
+    ]
+  },
   {
     id: "weekly",
     title: "⭐ מארז שבועי",
@@ -709,6 +724,10 @@ const menu = [
   }
 ];
 
+if (SPECIAL_MODE) {
+  menu.forEach(sec => sec.items.forEach(item => { if (!item.special) item.outOfStock = true; }));
+}
+
 // A section is shown only if at least one of its items is still available
 function sectionHasVisibleItems(section) {
   return section.items.some(item => !item.outOfStock);
@@ -768,6 +787,7 @@ function renderAll() {
     });
     const first = nav.querySelector('.cat-tab');
     if (first) first.classList.add('active');
+    nav.style.display = nav.children.length > 1 ? "" : "none";
   }
 
   menu.filter(sectionHasVisibleItems).forEach(section => {
@@ -904,6 +924,15 @@ function buildItemEl(item, section) {
         ${item.onlySauce !== 'persian' ? `<button class="choice-btn${curSauce === 'moroccan' ? ' selected' : ''}" onclick="setChoice('${item.id}_sauce','moroccan')">מרוקאי</button>` : ''}
       </div>
       <div class="choice-required" style="${curSauce ? 'display:none' : ''}">⚠️ יש לבחור רוטב</div>`}`;
+  } else if (hasQty && item.checkbox === "poke_spicy") {
+    if (!choices[item.id]) choices[item.id] = "mild"; // ברירת מחדל: בלי חריף
+    const cur = choices[item.id];
+    choiceHTML = `
+      <div class="item-choices">
+        <button class="choice-btn${cur === 'mild' ? ' selected' : ''}" onclick="setChoice('${item.id}','mild')">בלי פלפל חריף</button>
+        <button class="choice-btn${cur === 'spicy' ? ' selected' : ''}" onclick="setChoice('${item.id}','spicy')">🌶️ עם פלפל חריף</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;">הבחירה חלה על כל הקערות בהזמנה. רוצים חלק חריף וחלק לא? כתבו בהערות 💛</div>`;
   } else if (hasQty && item.checkbox === "thai_protein") {
     const cur = choices[item.id];
     choiceHTML = `
@@ -1301,6 +1330,8 @@ function getChoiceLabel(id) {
   if (c === "parve") return " – פרווה/טבעוני";
   if (c === "tahini") return " – טחינה (טבעוני)";
   if (c === "mayo") return " – מיונז (צמחוני)";
+  if (c === "mild") return " – בלי פלפל חריף";
+  if (c === "spicy") return " – עם פלפל חריף 🌶️";
   return "";
 }
 
@@ -1574,7 +1605,7 @@ function closeDeliveryModal(e) {
   }
 }
 
-const PICKUP_FROM = "13:00";
+const PICKUP_FROM = "16:00";
 const PICKUP_TO = "21:00";
 const PICKUP_STEP_MIN = 15;
 
@@ -1588,7 +1619,7 @@ const PICKUP_STEP_MIN = 15;
     sel.add(new Option(t, t));
   }
 })();
-const DELIVERY_FROM = "17:00";
+const DELIVERY_FROM = "19:30";
 const DELIVERY_TO = "21:00";
 
 // Pickup: one exact time between 13:00 and 21:00. Delivery: fixed 17:00–21:00 window.
@@ -1706,7 +1737,7 @@ function closeAbout() {
 renderAll();
 updateSummary();
 setupScrollSpy();
-openWelcome();
+// openWelcome(); // מושבת לספיישל – החלון "פעם ראשונה אצלנו?" מוסתר (הפונקציה נשארה)
 
 </script>
 <!-- ORDER NOTE MODAL -->
