@@ -633,10 +633,12 @@ const menu = [
     id: "special",
     title: "⭐ ספיישל פוקי בול",
     minGrams: 0,
-    minLabel: "מנה אחת בלבד – פוקי בול",
+    minLabel: "פוקי בול – רגיל או טופו 🌱",
     items: [
       { id: "pk1", name: "פוקי בול", price: 55, fixed: true, special: true, checkbox: "poke_spicy",
-        note: "מגיע קומפלט: אבוקדו, אדממה, עירית, מלפפון, אננס, בטטה וסלמון טרי.<br>לא אוהבים משהו? כתבו לנו בהערות בסוף ההזמנה." }
+        note: "מגיע קומפלט: אבוקדו, אדממה, עירית, מלפפון, אננס, בטטה וסלמון טרי.<br>לא אוהבים משהו? כתבו לנו בהערות בסוף ההזמנה." },
+      { id: "pk2", name: "פוקי בול טופו", price: 50, fixed: true, special: true, veg: true, checkbox: "poke_spicy",
+        note: "מגיע קומפלט: אבוקדו, אדממה, עירית, מלפפון, אננס, בטטה וטופו.<br>לא אוהבים משהו? כתבו לנו בהערות בסוף ההזמנה." }
     ]
   },
   {
@@ -757,6 +759,19 @@ const choices = {}; // { itemId: "persian" | "moroccan" | "beyond" | "regular" }
 const DELIVERY_FEE = 20;
 const POKE_BUNDLE_QTY = 4;    // מארז חברי: מכמה קערות
 const POKE_BUNDLE_PRICE = 50; // מחיר לקערה במארז חברי
+const POKE_REG_PRICE = 55;        // פוקי רגיל, קערה בודדת
+const POKE_TOFU_PRICE = 50;       // פוקי טופו, קערה בודדת
+const POKE_TOFU_BUNDLE_PRICE = 45; // מחיר טופו לקערה מ-4 קערות ומעלה
+// מחיר פוקי בול: מ-4 קערות ומעלה (בכל שילוב של רגיל + טופו) – רגיל 50 ₪, טופו 45 ₪ לקערה.
+// מחזיר את חלקה של כל שורה במחיר הכולל.
+function pokeSplit() {
+  const r = quantities["pk1"] || 0, t = quantities["pk2"] || 0;
+  const bundle = (r + t) >= POKE_BUNDLE_QTY;
+  return {
+    reg: (bundle ? POKE_BUNDLE_PRICE : POKE_REG_PRICE) * r,
+    tofu: (bundle ? POKE_TOFU_BUNDLE_PRICE : POKE_TOFU_PRICE) * t
+  };
+}
 let deliveryMode = null; // null = הלקוח עוד לא בחר; בלחיצה על "שלח" ייפתח חלון בחירה
 let orderTime = ""; // "HH:MM" for pickup, "HH:MM–HH:MM" for delivery
 
@@ -853,10 +868,12 @@ function buildItemEl(item, section) {
   if (item.weeklyDetails) div.classList.add("item-weekly");
 
   let priceLabel = isFixed ? item.price + " ₪ ליחידה" : item.price + " ₪ ל-100 גרם";
-  if (item.id === "pk1") {
-    priceLabel = qty >= POKE_BUNDLE_QTY
-      ? `${POKE_BUNDLE_PRICE} ₪ ליחידה <span style="color:var(--green-text);font-weight:600;">(מארז חברי 🎉 במקום ${item.price} ₪)</span>`
-      : `${item.price} ₪ ליחידה <span style="color:var(--text3);">· 4 קערות ב-200 ₪ (מארז חברי)</span>`;
+  if (item.id === "pk1" || item.id === "pk2") {
+    const bundled = ((quantities["pk1"] || 0) + (quantities["pk2"] || 0)) >= POKE_BUNDLE_QTY;
+    const bp = item.id === "pk1" ? POKE_BUNDLE_PRICE : POKE_TOFU_BUNDLE_PRICE;
+    priceLabel = bundled
+      ? `${bp} ₪ ליחידה <span style="color:var(--green-text);font-weight:600;">(מארז חברי 🎉 במקום ${item.price} ₪)</span>`
+      : `${item.price} ₪ ליחידה <span style="color:var(--text3);">· מ-4 קערות: ${bp} ₪ לקערה (מארז חברי)</span>`;
   }
   const minLabel = isFixed ? "" : `מינימום ${minQ} גרם`;
   const errorMsg = isFixed
@@ -1151,6 +1168,8 @@ function changeQty(id, delta, step, minQ) {
   }
   if (id === "w1") trimWeeklySelections();
   refreshItem(id);
+  if (id === "pk1") refreshItem("pk2");
+  if (id === "pk2") refreshItem("pk1");
   updateSummary();
 }
 
@@ -1320,10 +1339,9 @@ function calcItemCost(item) {
   const qty = quantities[item.id] || 0;
   if (!qty || item.outOfStock) return 0;
   if (item.fixed) {
-    // מארז חברי: 4 קערות ומעלה = 50 ₪ לקערה (4 ב-200 ₪)
-    if (item.id === "pk1") {
-      return (qty >= POKE_BUNDLE_QTY ? POKE_BUNDLE_PRICE : item.price) * qty;
-    }
+    // פוקי בול (רגיל/טופו) – מארז חברי
+    if (item.id === "pk1") return pokeSplit().reg;
+    if (item.id === "pk2") return pokeSplit().tofu;
     // Chalah bulk discount
     if (item.id === "s8") {
       const price = (quantities["s8"] || 0) >= 3 ? 15 : item.price;
