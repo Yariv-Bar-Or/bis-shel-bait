@@ -493,13 +493,13 @@
     <input class="name-input" type="text" id="delivery-address" placeholder="כתובת למשלוח (רחוב, מספר, עיר)" autocomplete="street-address" style="margin-bottom:8px;display:none;" />
     <!-- Pickup: one exact time, 13:00–21:00 -->
     <div id="pickup-time-row" style="display:none;margin-bottom:8px;">
-      <label class="time-label">שעת איסוף (בין 16:00 ל־21:00)
+      <label class="time-label">שעת איסוף (בין 13:00 ל־21:00)
         <select class="name-input" id="pickup-time"><option value="">בחר/י שעה</option></select>
       </label>
     </div>
     <!-- Delivery: fixed window, no time picking -->
     <div id="delivery-time-row" style="display:none;margin-bottom:8px;padding:8px 12px;border-radius:8px;background:var(--gold-light);color:var(--gold-dark);font-size:13px;line-height:1.5;">
-      🛵 המשלוחים שלנו יוצאים בין 19:30 ל־21:00. ניצור איתך קשר לתאם 💛<br>
+      🛵 המשלוחים שלנו יוצאים בערב, בין 17:00 ל־21:00. ניצור איתך קשר לתאם 💛<br>
       יש שעה שנוחה לך במיוחד? אפשר לכתוב לנו בהערה בסוף ונעשה כמיטב יכולתנו.
     </div>
     <button class="send-btn" onclick="sendOrder()">
@@ -520,17 +520,6 @@
 </div><!-- end summary-bar -->
 
 <!-- Delivery modal -->
-<!-- ספיישל: מארז חברי (חלון בכניסה) -->
-<div class="modal-overlay open" id="bundle-modal">
-  <div class="modal-box" dir="rtl" style="text-align:center;">
-    <div style="font-size:34px;margin-bottom:6px;">🍣</div>
-    <div class="modal-title" style="margin-bottom:8px;">מארז חברי</div>
-    <div style="font-size:18px;font-weight:700;color:var(--gold-dark);margin-bottom:6px;">4 מנות ב-200 ₪</div>
-    <div style="font-size:14px;color:var(--text2);margin-bottom:16px;">50 ₪ למנה במקום 55 ₪</div>
-    <button class="modal-btn primary" onclick="document.getElementById('bundle-modal').classList.remove('open')">המשך להזמנה</button>
-  </div>
-</div>
-
 <!-- FIRST VISIT -->
 <div class="modal-overlay" id="welcome-modal">
   <div class="modal-box" dir="rtl">
@@ -614,7 +603,6 @@ const itemImages = {
   "m12": "images/fish-patties.jpg",
   "m17": "images/schnitzel.jpg",
   "w1":  "images/weekly-bundle.jpg",
-  "pk1": "images/poke-salmon.jpg",
   "s1":  "images/rice.jpg",
   "s3":  "images/potatoes.jpg",
   "s5":  "images/mashed.jpg",
@@ -624,24 +612,7 @@ const itemImages = {
 
 
 
-// ── ספיישל פוקי בול ──────────────────────────────────────────────────────────
-// SPECIAL_MODE = true: מוצגת רק מנת הספיישל, שאר התפריט מוסתר (לא נמחק).
-// כדי לחזור לתפריט הרגיל: לשנות ל-false ולהחזיר את openWelcome() בסוף הקובץ.
-const SPECIAL_MODE = true;
-
 const menu = [
-  {
-    id: "special",
-    title: "⭐ ספיישל פוקי בול",
-    minGrams: 0,
-    minLabel: "פוקי בול – רגיל או טופו 🌱",
-    items: [
-      { id: "pk1", name: "פוקי בול סלמון", price: 55, fixed: true, special: true, checkbox: "poke_spicy",
-        note: "מגיע קומפלט: אבוקדו, אדממה, עירית, מלפפון, גזר, בטטה, אצות נורי וסלמון טרי.<br>לא אוהבים משהו? כתבו לנו בהערות בסוף ההזמנה." },
-      { id: "pk2", name: "פוקי בול טופו", price: 50, fixed: true, special: true, veg: true, checkbox: "poke_spicy",
-        note: "מגיע קומפלט: אבוקדו, אדממה, עירית, מלפפון, גזר, בטטה, אצות נורי וטופו.<br>לא אוהבים משהו? כתבו לנו בהערות בסוף ההזמנה." }
-    ]
-  },
   {
     id: "weekly",
     title: "⭐ מארז שבועי",
@@ -738,10 +709,6 @@ const menu = [
   }
 ];
 
-if (SPECIAL_MODE) {
-  menu.forEach(sec => sec.items.forEach(item => { if (!item.special) item.outOfStock = true; }));
-}
-
 // A section is shown only if at least one of its items is still available
 function sectionHasVisibleItems(section) {
   return section.items.some(item => !item.outOfStock);
@@ -758,21 +725,6 @@ menu.forEach(sec => {
 const quantities = {};
 const choices = {}; // { itemId: "persian" | "moroccan" | "beyond" | "regular" }
 const DELIVERY_FEE = 20;
-const POKE_BUNDLE_QTY = 4;    // מארז חברי: מכמה קערות
-const POKE_BUNDLE_PRICE = 50; // מחיר לקערה במארז חברי
-const POKE_REG_PRICE = 55;        // פוקי רגיל, קערה בודדת
-const POKE_TOFU_PRICE = 50;       // פוקי טופו, קערה בודדת
-const POKE_TOFU_BUNDLE_PRICE = 45; // מחיר טופו לקערה מ-4 קערות ומעלה
-// מחיר פוקי בול: מ-4 קערות ומעלה (בכל שילוב של רגיל + טופו) – רגיל 50 ₪, טופו 45 ₪ לקערה.
-// מחזיר את חלקה של כל שורה במחיר הכולל.
-function pokeSplit() {
-  const r = quantities["pk1"] || 0, t = quantities["pk2"] || 0;
-  const bundle = (r + t) >= POKE_BUNDLE_QTY;
-  return {
-    reg: (bundle ? POKE_BUNDLE_PRICE : POKE_REG_PRICE) * r,
-    tofu: (bundle ? POKE_TOFU_BUNDLE_PRICE : POKE_TOFU_PRICE) * t
-  };
-}
 let deliveryMode = null; // null = הלקוח עוד לא בחר; בלחיצה על "שלח" ייפתח חלון בחירה
 let orderTime = ""; // "HH:MM" for pickup, "HH:MM–HH:MM" for delivery
 
@@ -816,7 +768,6 @@ function renderAll() {
     });
     const first = nav.querySelector('.cat-tab');
     if (first) first.classList.add('active');
-    nav.style.display = nav.children.length > 1 ? "" : "none";
   }
 
   menu.filter(sectionHasVisibleItems).forEach(section => {
@@ -868,14 +819,7 @@ function buildItemEl(item, section) {
   div.id = "item-" + item.id;
   if (item.weeklyDetails) div.classList.add("item-weekly");
 
-  let priceLabel = isFixed ? item.price + " ₪ ליחידה" : item.price + " ₪ ל-100 גרם";
-  if (item.id === "pk1" || item.id === "pk2") {
-    const bundled = ((quantities["pk1"] || 0) + (quantities["pk2"] || 0)) >= POKE_BUNDLE_QTY;
-    const bp = item.id === "pk1" ? POKE_BUNDLE_PRICE : POKE_TOFU_BUNDLE_PRICE;
-    priceLabel = bundled
-      ? `${bp} ₪ ליחידה <span style="color:var(--green-text);font-weight:600;">(מארז חברי 🎉 במקום ${item.price} ₪)</span>`
-      : `${item.price} ₪ ליחידה <span style="color:var(--text3);">· מ-4 קערות: ${bp} ₪ לקערה (מארז חברי)</span>`;
-  }
+  const priceLabel = isFixed ? item.price + " ₪ ליחידה" : item.price + " ₪ ל-100 גרם";
   const minLabel = isFixed ? "" : `מינימום ${minQ} גרם`;
   const errorMsg = isFixed
     ? (minQ > 1 ? `⚠️ מינימום הזמנה: ${minQ} יח'` : "")
@@ -960,14 +904,6 @@ function buildItemEl(item, section) {
         ${item.onlySauce !== 'persian' ? `<button class="choice-btn${curSauce === 'moroccan' ? ' selected' : ''}" onclick="setChoice('${item.id}_sauce','moroccan')">מרוקאי</button>` : ''}
       </div>
       <div class="choice-required" style="${curSauce ? 'display:none' : ''}">⚠️ יש לבחור רוטב</div>`}`;
-  } else if (hasQty && item.checkbox === "poke_spicy") {
-    const bowls = getPokeBowls(item.id); // בחירה נפרדת לכל קערה, ברירת מחדל: בלי חריף
-    choiceHTML = bowls.map((v, i) => `
-      ${bowls.length > 1 ? `<div style="font-size:12px;font-weight:600;color:var(--text2);margin-top:8px;">קערה ${i + 1}</div>` : ''}
-      <div class="item-choices">
-        <button class="choice-btn${v === 'mild' ? ' selected' : ''}" onclick="setBowl('${item.id}',${i},'mild')">בלי פלפל חריף</button>
-        <button class="choice-btn${v === 'spicy' ? ' selected' : ''}" onclick="setBowl('${item.id}',${i},'spicy')">🌶️ עם פלפל חריף</button>
-      </div>`).join('');
   } else if (hasQty && item.checkbox === "thai_protein") {
     const cur = choices[item.id];
     choiceHTML = `
@@ -1151,7 +1087,6 @@ function changeQty(id, delta, step, minQ) {
   quantities[id] = next;
   if (next === 0) {
     delete choices[id];
-    delete choices[id + "_bowls"];
     // Clean up weekly bundle sub-choices
     if (id === "w1") {
       delete choices["w1_salad"];
@@ -1169,8 +1104,6 @@ function changeQty(id, delta, step, minQ) {
   }
   if (id === "w1") trimWeeklySelections();
   refreshItem(id);
-  if (id === "pk1") refreshItem("pk2");
-  if (id === "pk2") refreshItem("pk1");
   updateSummary();
 }
 
@@ -1283,24 +1216,6 @@ function setChoice(id, value) {
   updateSummary();
 }
 
-// ── פוקי בול: בחירת חריף נפרדת לכל קערה ─────────────────────────────────────
-function getPokeBowls(id) {
-  const n = quantities[id] || 0;
-  const arr = (choices[id + "_bowls"] || []).slice(0, n);
-  while (arr.length < n) arr.push("mild");
-  choices[id + "_bowls"] = arr;
-  return arr;
-}
-function setBowl(id, i, v) {
-  getPokeBowls(id)[i] = v;
-  refreshItem(id);
-  updateSummary();
-}
-function pokeBowlLines(id) {
-  return getPokeBowls(id).map((v, i) =>
-    `קערה ${i + 1} – ${v === "spicy" ? "עם פלפל חריף 🌶️" : "בלי פלפל חריף"}`);
-}
-
 function refreshItem(id) {
   const item = itemMap[id];
   const section = menu.find(s => s.items.some(i => i.id === id));
@@ -1340,9 +1255,6 @@ function calcItemCost(item) {
   const qty = quantities[item.id] || 0;
   if (!qty || item.outOfStock) return 0;
   if (item.fixed) {
-    // פוקי בול (רגיל/טופו) – מארז חברי
-    if (item.id === "pk1") return pokeSplit().reg;
-    if (item.id === "pk2") return pokeSplit().tofu;
     // Chalah bulk discount
     if (item.id === "s8") {
       const price = (quantities["s8"] || 0) >= 3 ? 15 : item.price;
@@ -1444,7 +1356,7 @@ function updateSummary() {
       return `<div class="order-line" style="${isError ? 'color:var(--red-text)' : ''}">
         <span>${isError ? '⚠️ ' : ''}${item.name}${choiceLabel} (${qty} ${unit})</span>
         <span>${cost} ₪</span>
-      </div>` + (item.checkbox === "poke_spicy" ? pokeBowlLines(item.id).map(l => `<div class="order-line" style="font-size:12px;color:var(--text2);padding-top:0;"><span>${l}</span></div>`).join("") : "");
+      </div>`;
     }).join("") + (deliveryMode === "delivery"
       ? `<div class="order-line"><span>🛵 משלוח</span><span>${DELIVERY_FEE.toFixed(1)} ₪</span></div>`
       : "");
@@ -1556,7 +1468,6 @@ function sendOrder() {
       }
       return false;
     }
-    if (i.checkbox === "poke_spicy") return false;
     if (i.checkbox === "pad_kapao") return !choices[i.id] || !choices[i.id + "_egg"];
     if (i.checkbox === "sauce_tofu_beyond") return !choices[i.id] || !choices[i.id + "_sauce"];
     if (i.checkbox === "beyond_choice_with_potato") return !choices[i.id] || !choices[i.id + "_potato"];
@@ -1598,7 +1509,6 @@ function sendOrder() {
       const cost = calcItemCost(item).toFixed(1);
       const choiceLabel = item.checkbox === "pad_kapao" ? getChoiceLabelPadKapao(item.id) : (item.checkbox === "beyond_choice_with_potato" ? getChoiceLabelPotatoPie(item.id) : (item.checkbox === "sauce_tofu_beyond" ? getChoiceLabelSauceTofuBeyond(item.id) : getChoiceLabel(item.id)));
       msg += `- ${item.name}${choiceLabel} – ${qty} ${unit} = ${cost} ₪\n`;
-      if (item.checkbox === "poke_spicy") pokeBowlLines(item.id).forEach(l => { msg += `   • ${l}\n`; });
       // Weekly bundle details
       if (item.id === "w1") {
         const selections = choices["w1_selections"] || [];
@@ -1664,7 +1574,7 @@ function closeDeliveryModal(e) {
   }
 }
 
-const PICKUP_FROM = "16:00";
+const PICKUP_FROM = "13:00";
 const PICKUP_TO = "21:00";
 const PICKUP_STEP_MIN = 15;
 
@@ -1678,7 +1588,7 @@ const PICKUP_STEP_MIN = 15;
     sel.add(new Option(t, t));
   }
 })();
-const DELIVERY_FROM = "19:30";
+const DELIVERY_FROM = "17:00";
 const DELIVERY_TO = "21:00";
 
 // Pickup: one exact time between 13:00 and 21:00. Delivery: fixed 17:00–21:00 window.
@@ -1796,7 +1706,7 @@ function closeAbout() {
 renderAll();
 updateSummary();
 setupScrollSpy();
-// openWelcome(); // מושבת לספיישל – החלון "פעם ראשונה אצלנו?" מוסתר (הפונקציה נשארה)
+openWelcome();
 
 </script>
 <!-- ORDER NOTE MODAL -->
