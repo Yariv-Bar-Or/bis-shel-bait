@@ -577,8 +577,8 @@
 const PHONE = "972549103442";
 
 // ── המארז השבועי: לעדכן כאן כל שבוע ──
-const WEEKLY_SIDES = ["אורז לבן", "תפוחי אדמה בתנור"]; // תוספות כלולות
-const WEEKLY_SALADS = ["חציל על האש בטחינה"];                     // סלט כלול, בלי בחירה
+const WEEKLY_SIDES = ["אורז לבן", "ירוקים מוקפצים"]; // תוספות כלולות
+const WEEKLY_SALADS = ["כרוב סגול במיונז"];                     // סלט כלול, בלי בחירה
 
 const itemHeroImages = {
   "c1": "images/pilpel.jpg",
@@ -629,28 +629,29 @@ const menu = [
     minGrams: 800,
     minLabel: "מינימום הזמנה לכל מנה: 800 גרם | מחיר ל-100 גרם",
     items: [
-      { id: "m1",  name: "מסחאן עוף מפורק עם שקדים קלויים על אורז לבן", price: 8.5, excludeFromBundle: true },
-      { id: "m2",  name: "מסחאן עוף מפורק עם שקדים קלויים (ללא אורז)", price: 11 },
-      { id: "m3",  name: "עוף בתנור עם תפוחי אדמה ובטטה", price: 7.5, outOfStock: true },
+      { id: "m1",  name: "מסחאן עוף מפורק עם שקדים קלויים על אורז לבן", price: 8.5, excludeFromBundle: true, outOfStock: true },
+      { id: "m2",  name: "מסחאן עוף מפורק עם שקדים קלויים (ללא אורז)", price: 11, outOfStock: true },
+      { id: "m3",  name: "עוף בתנור עם תפוחי אדמה ובטטה", price: 7.5 },
       { id: "m4",  name: "עוף ברוטב פרסי", price: 8, outOfStock: true },
-      { id: "m18", name: "אושפלו עוף", price: 8.5 },
+      { id: "m18", name: "אושפלו עוף", price: 8.5, outOfStock: true },
       { id: "m5a", name: "קוסקוס עם עוף וירקות", price: 8, note: "המשקל מחושב לפי המרק, בנוסף מגיע עם תוספת של 50% קוסקוס", outOfStock: true },
       { id: "m5b", name: "קוסקוס ירקות (ללא עוף)", price: 7.5, veg: true, vegan: true, note: "המשקל מחושב לפי המרק, בנוסף מגיע עם תוספת של 50% קוסקוס", outOfStock: true },
       { id: "m6",  name: "כנפיים ברוטב מתקתק-פיקנטי", price: 7, outOfStock: true },
       { id: "m7",  name: "קציצות עוף", price: 9, checkbox: "sauce_persian_moroccan", onlySauce: "persian", note: "השבוע ברוטב פרסי בלבד", outOfStock: true },
       { id: "m7v", name: "קציצות צמחוניות/טבעוניות", price: 9, veg: true, vegan: true, veganOption: "beyond", checkbox: "sauce_tofu_beyond", onlySauce: "persian", note: "לבחור חלבון: טופו / ביונד (+15 ₪) | השבוע ברוטב פרסי בלבד", outOfStock: true },
       { id: "m7x", name: "קציצות ביונד מיט (מוזג לתוך קציצות צמחוניות/טבעוניות)", price: 9.5, veg: true, vegan: true, checkbox: "sauce_persian_moroccan", note: "לבחור רוטב: פרסי / מרוקאי", outOfStock: true },
-      { id: "m8",  name: "בורקס בשר עם צנוברים", price: 9, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+15 ₪) = טבעוני", checkbox: "beyond_choice" },
+      { id: "m8",  name: "בורקס בשר עם צנוברים", price: 9, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+15 ₪) = טבעוני", checkbox: "beyond_choice", outOfStock: true },
       { id: "m9",  name: "פסטה בולונז", price: 6.5, veganOption: "beyond", note: "ניתן עם ביונד (+15 ₪) = טבעוני", checkbox: "beyond_choice", outOfStock: true },
       { id: "m10", name: "פאי רועים", price: 8.5, veganOption: "beyond", note: "סטייה של עד 100 גרם | ניתן עם ביונד (+15 ₪) = טבעוני", checkbox: "beyond_choice_with_potato", outOfStock: true },
-      { id: "m11", name: "דג מרוקאי", price: 8 },
+      { id: "m11", name: "דג מרוקאי", price: 8, outOfStock: true },
       { id: "m12", name: "קציצות דג", price: 9, checkbox: "sauce_persian_moroccan", onlySauce: "moroccan", note: "ברוטב מרוקאי בלבד", outOfStock: true },
       { id: "m13", name: "דג סלמון בחמאת עגבניות ויין לבן", price: 15, outOfStock: true },
       { id: "m14", name: "פסטל יווני במילוי חצילים וגבינות", price: 8, veg: true, outOfStock: true },
-      { id: "m15", name: "מוקפץ תאילנדי", price: 7, checkbox: "thai_protein", note: "לבחור: עוף / טופו (טבעוני)", outOfStock: true },
+      { id: "m15", name: "מוקפץ תאילנדי", price: 7, checkbox: "thai_protein", note: "לבחור: עוף / טופו (טבעוני)" },
       { id: "m16", name: "פאד קפאו על מצע של אורז לבן", price: 8, veganOption: "beyond", checkbox: "pad_kapao", note: "לבחור: ביצת עין / ביצת עין הפוכה | ניתן עם ביונד (+15 ₪) = טבעוני", outOfStock: true },
       { id: "m17", name: "שניצל של בית", price: 7.5, outOfStock: true },
-      { id: "m19", name: "צלי בקר עם ירקות שורש", price: 10, outOfStock: true },
+      { id: "m19", name: "צלי בקר עם ירקות שורש", price: 10 },
+      { id: "m22", name: "פלפל ממולא", price: 10, veganOption: "beyond", note: "סטייה של עד 200 גרם | ניתן עם ביונד (+15 ₪) = טבעוני", checkbox: "beyond_choice" },
       { id: "m20", name: "מוסקה", price: 10, outOfStock: true },
       { id: "m21", name: "עוף/טופו בקארי וקרם קוקוס", price: 8.5, checkbox: "thai_protein", note: "לבחור: עוף / טופו (טבעוני)", outOfStock: true }
     ]
@@ -662,15 +663,16 @@ const menu = [
     minLabel: "מינימום הזמנה לכל תוספת: 500 גרם | מחיר ל-100 גרם",
     items: [
       { id: "s1", name: "אורז לבן", price: 4, veg: true, vegan: true },
+      { id: "s12", name: "ירוקים מוקפצים", price: 5.5, veg: true, vegan: true },
       { id: "s2", name: "אורז עם אטריות", price: 3, veg: true, vegan: true, outOfStock: true },
-      { id: "s3", name: "תפוחי אדמה בתנור", price: 4, veg: true, vegan: true },
+      { id: "s3", name: "תפוחי אדמה בתנור", price: 4, veg: true, vegan: true, outOfStock: true },
       { id: "s10", name: "פתיתים", price: 3.5, veg: true, vegan: true, outOfStock: true },
       { id: "s4", name: "מיקס תפוח אדמה ובטטה", price: 4, veg: true, vegan: true, outOfStock: true },
       { id: "s9", name: "מיקס ירקות בתנור", price: 4, veg: true, vegan: true, outOfStock: true },
       { id: "s5", name: "פירה", price: 5, veg: true, checkbox: "dairy_parve", outOfStock: true },
       { id: "s6", name: "מג'דרה", price: 5, veg: true, vegan: true, outOfStock: true },
       { id: "s7", name: "בורגול עם בצל", price: 4, veg: true, vegan: true, outOfStock: true },
-      { id: "s8", name: "חלת שישי", price: 20, unit: "יח'", fixed: true, veg: true, minUnits: 1, outOfStock: true },
+      { id: "s8", name: "חלת שישי", price: 20, unit: "יח'", fixed: true, veg: true, minUnits: 1 },
       { id: "s11", name: "כרוב צלוי בזיגוג מיסו", price: 6, veg: true, vegan: true, outOfStock: true }
     ]
   },
@@ -681,13 +683,13 @@ const menu = [
     step: 50,
     minLabel: "מינימום הזמנה לכל סלט: 250 גרם | מחיר ל-100 גרם | קפיצות 50 גרם",
     items: [
-      { id: "sa1", name: "חציל על האש בטחינה", price: 8, veg: true },
+      { id: "sa1", name: "חציל על האש בטחינה", price: 8, veg: true, outOfStock: true },
       { id: "sa2", name: "סלט ביצים", price: 6, veg: true, outOfStock: true },
       { id: "sa3", name: "מטבוחה", price: 8.5, veg: true, vegan: true, outOfStock: true },
       { id: "sa4", name: "חמוצים", price: 5, veg: true, vegan: true, outOfStock: true },
       { id: "sa5", name: "סלט כרוב לבן", price: 3, veg: true, vegan: true, outOfStock: true },
-      { id: "sa6", name: "סלט כרוב סגול במיונז", price: 5, veg: true, vegan: true, outOfStock: true },
-      { id: "sa7", name: "ממרח פטה כבד", price: 7, minGrams: 500, note: "מינימום 500 גרם", outOfStock: true },
+      { id: "sa6", name: "סלט כרוב סגול במיונז", price: 5, veg: true, vegan: true },
+      { id: "sa7", name: "ממרח פטה כבד", price: 7, minGrams: 500, note: "מינימום 500 גרם" },
       { id: "sa9", name: "סלט סלק", price: 5, veg: true, vegan: true, outOfStock: true },
       { id: "sa10", name: "גזר פיקנטי", price: 5, veg: true, vegan: true, outOfStock: true },
       { id: "sa11", name: "סלט קולסלואו", price: 6, veg: true, vegan: true, outOfStock: true },
@@ -703,10 +705,10 @@ const menu = [
       { id: "c1", name: "ריבת פלפל חריף",                      price: 22, fixed: true, veg: true, vegan: true, outOfStock: true },
       { id: "c2", name: "ארטישוק קונפי עם פרמז'ן",              price: 22, fixed: true, veg: true, outOfStock: true },
       { id: "c3", name: "חמאת שום, עשבי תיבול ופרמז'ן",        price: 22, fixed: true, veg: true, outOfStock: true },
-      { id: "c4", name: "לימון כבוש",                           price: 17, fixed: true, veg: true, vegan: true },
+      { id: "c4", name: "לימון כבוש",                           price: 17, fixed: true, veg: true, vegan: true, outOfStock: true },
       { id: "c5", name: "כדורי לאבנה",                          price: 20, fixed: true, veg: true, outOfStock: true },
       { id: "c6", name: "סקורדליה – מטבל יווני",               price: 22, fixed: true, veg: true, vegan: true, outOfStock: true },
-      { id: "c7", name: "שום קונפי בשמן זית", price: 23, fixed: true, veg: true, vegan: true }
+      { id: "c7", name: "שום קונפי בשמן זית", price: 23, fixed: true, veg: true, vegan: true, outOfStock: true }
     ]
   }
 ];
