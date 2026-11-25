@@ -499,7 +499,7 @@
     </div>
     <!-- Delivery: fixed window, no time picking -->
     <div id="delivery-time-row" style="display:none;margin-bottom:8px;padding:8px 12px;border-radius:8px;background:var(--gold-light);color:var(--gold-dark);font-size:13px;line-height:1.5;">
-      🛵 המשלוחים שלנו יוצאים בערב, בין 19:00 ל־21:00. ניצור איתך קשר לתאם 💛<br>
+      🛵 המשלוחים שלנו יוצאים בבוקר, בין 09:00 ל־11:00. ניצור איתך קשר לתאם 💛<br>
       יש שעה שנוחה לך במיוחד? אפשר לכתוב לנו בהערה בסוף ונעשה כמיטב יכולתנו.
     </div>
     <button class="send-btn" onclick="sendOrder()">
@@ -1593,10 +1593,10 @@ const PICKUP_STEP_MIN = 15;
     sel.add(new Option(t, t));
   }
 })();
-const DELIVERY_FROM = "19:00";
-const DELIVERY_TO = "21:00";
+const DELIVERY_FROM = "09:00";
+const DELIVERY_TO = "11:00";
 
-// Pickup: one exact time between 13:00 and 21:00. Delivery: fixed 19:00–21:00 window.
+// Pickup: one exact time between 13:00 and 21:00. Delivery: fixed 09:00–11:00 window.
 // Returns { ok, text } or { ok:false, msg, field } (field = input to highlight)
 function checkOrderTime() {
   if (deliveryMode === "pickup") {
